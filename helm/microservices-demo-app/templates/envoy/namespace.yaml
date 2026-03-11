@@ -1,0 +1,14 @@
+{{- if .Values.httproute.namespaces.create }}
+{{- range $i := until (.Values.httproute.namespaces.number | int) }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-6"
+  labels:
+    kubernetes.io/metadata.name: loadtesting-{{ $i }}
+  name: loadtesting-{{ $i }}
+{{- end }}
+{{- end }}

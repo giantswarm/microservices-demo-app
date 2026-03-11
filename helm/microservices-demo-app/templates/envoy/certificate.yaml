@@ -1,0 +1,28 @@
+{{- if .Values.frontend.create }}
+{{- if .Values.httproute.enabled }}
+{{ range $i := until (.Values.httproute.namespaces.number | int) }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    application.giantswarm.io/team: cabbage
+  name: gateway-{{ $i }}-https
+  namespace: loadtesting-{{ $i }}
+spec:
+  dnsNames:
+  - 'onlineboutique.loadtesting-{{ $i }}.{{ $.Values.httproute.base }}'
+  issuerRef:
+    group: cert-manager.io
+    {{- if $.Values.httproute.issuer.enabled }}
+    kind: Issuer
+    name: letsencrypt-giantswarm-gateway-{{ $i }}
+    {{- else }}
+    kind: ClusterIssuer
+    name: letsencrypt-giantswarm-gateway
+    {{- end }}
+  secretName: gateway-{{ $i }}-https-tls
+{{- end }}
+{{- end }}
+{{- end }}
+

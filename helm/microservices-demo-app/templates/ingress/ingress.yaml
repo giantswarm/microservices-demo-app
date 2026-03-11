@@ -1,0 +1,33 @@
+{{- if .Values.frontend.create }}
+{{- if .Values.ingress.enabled }}
+{{ range $i := until (.Values.ingress.number | int) }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $.Values.frontend.name }}-nginx-{{ $i }}
+  namespace: {{ $.Release.Namespace }}
+  {{- with $.Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - {{ $.Values.ingress.host }}-{{ $i }}.{{ $.Release.Namespace }}.{{ $.Values.ingress.base }}
+      secretName: nginx-ingress-wildcard-tls
+  rules:
+    - host: {{ $.Values.ingress.host}}-{{ $i }}.{{ $.Release.Namespace }}.{{ $.Values.ingress.base }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $.Values.frontend.name }}
+                port:
+                  number: 80
+{{- end }}
+{{- end }}
+{{- end }}

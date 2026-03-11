@@ -1,0 +1,21 @@
+{{- if and .Values.paymentService.create .Values.paymentService.hpa.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Values.paymentService.name }}-hpa
+  namespace: loadtesting
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Values.paymentService.name }}
+  minReplicas: {{ .Values.paymentService.hpa.minReplicas | default 1 }}
+  maxReplicas: {{ .Values.paymentService.hpa.maxReplicas | default 5 }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.paymentService.hpa.targetCPUUtilizationPercentage | default 80 }}
+{{- end }}
