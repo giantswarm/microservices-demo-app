@@ -1,0 +1,28 @@
+{{- if .Values.frontend.create }}
+{{- if and .Values.httproute.enabled .Values.httproute.issuer.enabled }}
+{{ range $i := until (.Values.httproute.namespaces.number | int) }}
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  labels:
+    application.giantswarm.io/team: cabbage
+  name: letsencrypt-giantswarm-gateway-{{ $i }}
+  namespace: loadtesting-{{ $i }}
+spec:
+  acme:
+    email: accounts@giantswarm.io
+    privateKeySecretRef:
+      name: letsencrypt-giantswarm-gateway
+    server: https://acme-v02.api.letsencrypt.org/directory
+    solvers:
+    - http01:
+        gatewayHTTPRoute:
+          parentRefs:
+          - group: gateway.networking.k8s.io
+            kind: Gateway
+            name: giantswarm-default
+            namespace: envoy-gateway-system
+{{- end }}
+{{- end }}
+{{- end }}

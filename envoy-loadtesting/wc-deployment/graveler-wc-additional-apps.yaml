@@ -1,0 +1,157 @@
+---
+apiVersion: v1
+data:
+  values: |
+    apps:
+      envoyGateway:
+        enabled: true
+      gatewayApiConfig:
+        enabled: true
+        userConfig:
+          configMap:
+            values: |
+              gateways:
+                default:
+                  envoyProxy:
+                    enabled: false
+                  listeners:
+                    http:
+                      httpsRedirectEnabled: true
+                      allowedRoutes:
+                        namespaces:
+                          from: All
+                    https:
+                      subdomains:
+                        - onlineboutique
+              gatewayClasses:
+                default:
+                  envoyProxy:
+                    mergeGateways: true
+                    envoyService:
+                      annotations:
+                        external-dns.alpha.kubernetes.io/hostname: gateway.envoyloadtesting.gaws2.gigantic.io
+                        giantswarm.io/external-dns: managed
+                        service.beta.kubernetes.io/aws-load-balancer-attributes: load_balancing.cross_zone.enabled=true
+                        service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold: "2"
+                        service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: /healthz
+                        service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: http-80
+                        service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: '*'
+                        service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+                        service.beta.kubernetes.io/aws-load-balancer-target-group-attributes: target_health_state.unhealthy.connection_termination.enabled=false,target_health_state.unhealthy.draining_interval_seconds=200,preserve_client_ip.enabled=false
+                      externalTrafficPolicy: Local
+                      loadBalancerClass: service.k8s.aws/nlb
+                      type: LoadBalancer
+      gatewayApiCrds:
+        enabled: true
+    clusterID: envoyloadtesting
+kind: ConfigMap
+metadata:
+  labels:
+    app-operator.giantswarm.io/watching: "true"
+  name: envoyloadtesting-gateway-api-bundle
+  namespace: org-giantswarm
+---
+apiVersion: application.giantswarm.io/v1alpha1
+kind: App
+metadata:
+  finalizers:
+  - operatorkit.giantswarm.io/app-operator-app
+  generation: 1
+  labels:
+    app-operator.giantswarm.io/version: 0.0.0
+    app.kubernetes.io/name: gateway-api-bundle
+  name: envoyloadtesting-gateway-api-bundle
+  namespace: org-giantswarm
+spec:
+  catalog: giantswarm
+  config:
+    configMap:
+      name: envoyloadtesting-cluster-values
+      namespace: org-giantswarm
+  kubeConfig:
+    inCluster: true
+  name: gateway-api-bundle
+  namespace: org-giantswarm
+  userConfig:
+    configMap:
+      name: envoyloadtesting-gateway-api-bundle
+      namespace: org-giantswarm
+  version: 1.12.9
+---
+apiVersion: v1
+data:
+  values.yaml: |
+    enableServiceMutatorWebhook: false
+kind: ConfigMap
+metadata:
+  labels:
+    app-operator.giantswarm.io/watching: "true"
+  name: envoyloadtesting-aws-lb-controller-bundle-user-values
+  namespace: org-giantswarm
+---
+apiVersion: application.giantswarm.io/v1alpha1
+kind: App
+metadata:
+  name: envoyloadtesting-aws-lb-controller-bundle
+  namespace: org-giantswarm
+  labels:
+    giantswarm.io/cluster: envoyloadtesting
+    app-operator.giantswarm.io/version: 0.0.0
+spec:
+  catalog: giantswarm
+  name: aws-lb-controller-bundle
+  namespace: org-giantswarm
+  kubeConfig:
+    inCluster: true
+  userConfig:
+    configMap:
+      name: envoyloadtesting-aws-lb-controller-bundle-user-values
+      namespace: org-giantswarm
+  version: 5.0.1
+---
+apiVersion: v1
+data:
+  values.yaml: |
+    controller:
+      ingressClassResource:
+        enabled: true
+      service:
+        externalDNS:
+          enabled: true
+      extraArgs:
+        update-status: "true"
+kind: ConfigMap
+metadata:
+  labels:
+    app-operator.giantswarm.io/watching: "true"
+  name: envoyloadtesting-ingress-nginx-user-values
+  namespace: org-giantswarm
+---
+apiVersion: application.giantswarm.io/v1alpha1                                                                                                                                          
+kind: App                                                                                                                                                                               
+metadata:
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+    giantswarm.io/cluster: envoyloadtesting
+  name: envoyloadtesting-ingress-nginx
+  namespace: org-giantswarm
+spec:
+  catalog: giantswarm
+  config:
+    configMap:
+      name: envoyloadtesting-cluster-values
+      namespace: org-giantswarm
+  kubeConfig:
+    context:
+      name: envoyloadtesting
+    inCluster: false
+    secret:
+      name: envoyloadtesting-kubeconfig
+      namespace: org-giantswarm
+  name: ingress-nginx
+  namespace: kube-system
+  userConfig:
+    configMap:
+      name: envoyloadtesting-ingress-nginx-user-values
+      namespace: org-giantswarm
+  version: 4.2.3

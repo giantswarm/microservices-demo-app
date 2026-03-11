@@ -1,0 +1,46 @@
+{{- if .Values.frontend.create }}
+{{- if and .Values.httproute.enabled .Values.httproute.envoyProxy.enabled }}
+{{ range $i := until (.Values.httproute.namespaces.number | int) }}
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  labels:
+    application.giantswarm.io/team: cabbage
+  name: gateway-{{ $i }}
+  namespace: loadtesting-{{ $i }}
+spec:
+  logging:
+    level:
+      default: warn
+  provider:
+    kubernetes:
+      envoyDeployment:
+        container:
+          imageRepository: gsoci.azurecr.io/giantswarm/envoy
+      envoyHpa:
+        maxReplicas: 10
+        minReplicas: 2
+      envoyPDB:
+        maxUnavailable: 25%
+      envoyService:
+        annotations:
+          external-dns.alpha.kubernetes.io/hostname: ingress-{{ $i }}.{{ $.Values.httproute.base }}
+          giantswarm.io/external-dns: managed
+          service.beta.kubernetes.io/aws-load-balancer-attributes: load_balancing.cross_zone.enabled=true
+          service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold: "2"
+          service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: /healthz
+          service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: http-80
+          service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: '*'
+          service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+          service.beta.kubernetes.io/aws-load-balancer-target-group-attributes: target_health_state.unhealthy.connection_termination.enabled=false,target_health_state.unhealthy.draining_interval_seconds=200,preserve_client_ip.enabled=false
+        externalTrafficPolicy: Local
+        loadBalancerClass: service.k8s.aws/nlb
+        type: LoadBalancer
+    type: Kubernetes
+  shutdown:
+    drainTimeout: 180s
+    minDrainDuration: 60s
+{{- end }}
+{{- end }}
+{{- end }}

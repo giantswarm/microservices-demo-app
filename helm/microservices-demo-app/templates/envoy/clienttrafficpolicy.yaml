@@ -1,0 +1,23 @@
+{{- if .Values.frontend.create }}
+{{- if and .Values.httproute.enabled .Values.httproute.clienttrafficpolicy.enabled }}
+{{ range $i := until (.Values.httproute.namespaces.number | int) }}
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: ClientTrafficPolicy
+metadata:
+  labels:
+    application.giantswarm.io/team: cabbage
+  name: gateway-{{ $i }}
+  namespace: loadtesting-{{ $i }}
+spec:
+  healthCheck:
+    path: /healthz
+  proxyProtocol:
+    optional: false
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: gateway-{{ $i }}
+{{- end }}
+{{- end }}
+{{- end }}

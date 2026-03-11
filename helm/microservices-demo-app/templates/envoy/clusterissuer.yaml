@@ -1,0 +1,25 @@
+{{- if .Values.frontend.create }}
+{{- if .Values.httproute.enabled }}
+{{- if not .Values.httproute.issuer.enabled }}
+---
+apiVersion: cert-manager.io/v1                                                                                                                                                                    
+kind: ClusterIssuer                                                                                                                                                                               
+metadata:                                                                                                                                                                                         
+  name: letsencrypt-giantswarm-gateway                                                                                                                                                            
+spec:                                                                                                                                                                                             
+  acme:                                                                                                                                                                                           
+    email: accounts@giantswarm.io                                                                                                                                                                 
+    privateKeySecretRef:                                                                                                                                                                          
+      name: letsencrypt-giantswarm-gateway                                                                                                                                                        
+    server: https://acme-v02.api.letsencrypt.org/directory                                                                                                                                        
+    solvers:                                                                                                                                                                                      
+    - http01:                                                                                                                                                                                     
+        gatewayHTTPRoute:                                                                                                                                                                         
+          parentRefs:                                                                                                                                                                             
+          - group: gateway.networking.k8s.io                                                                                                                                                      
+            kind: Gateway                                                                                                                                                                         
+            name: giantswarm-default
+            namespace: envoy-gateway-system
+{{- end }}
+{{- end }}
+{{- end }}

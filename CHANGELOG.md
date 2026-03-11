@@ -7,6 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- changed: `app.giantswarm.io` label group was changed to `application.giantswarm.io`
+- Initial version of the app.
 
 [Unreleased]: https://github.com/giantswarm/microservices-demo-app/tree/main

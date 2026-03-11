@@ -1,0 +1,72 @@
+---
+apiVersion: v1
+data:
+  values: |
+    global:
+      apps:
+        certManager:
+          values:
+            config:
+              apiVersion: controller.config.cert-manager.io/v1alpha1
+              enableGatewayAPI: true
+              kind: ControllerConfiguration
+      connectivity:
+        availabilityZoneUsageLimit: 3
+        certManager:
+          useDnsChallenges: true
+        network: {}
+        topology: {}
+      controlPlane: {}
+      metadata:
+        description: Test load testing setup
+        name: envoyloadtesting
+        organization: giantswarm
+        preventDeletion: false
+      nodePools:
+        nodepool0:
+          availabilityZones:
+          - eu-north-1a
+          instanceType: m5.xlarge
+          maxSize: 10
+          minSize: 3
+          rootVolumeSizeGB: 8
+      providerSpecific: {}
+      release:
+        version: 34.1.0
+kind: ConfigMap
+metadata:
+  labels:
+    giantswarm.io/cluster: envoyloadtesting
+  name: envoyloadtesting-userconfig
+  namespace: org-giantswarm
+---
+apiVersion: application.giantswarm.io/v1alpha1
+kind: App
+metadata:
+  labels:
+    app-operator.giantswarm.io/version: 0.0.0
+  name: envoyloadtesting
+  namespace: org-giantswarm
+spec:
+  catalog: cluster
+  config:
+    configMap:
+      name: ""
+      namespace: ""
+    secret:
+      name: ""
+      namespace: ""
+  kubeConfig:
+    context:
+      name: ""
+    inCluster: true
+    secret:
+      name: ""
+      namespace: ""
+  name: cluster-aws
+  namespace: org-giantswarm
+  userConfig:
+    configMap:
+      name: envoyloadtesting-userconfig
+      namespace: org-giantswarm
+  version: 34.1.0

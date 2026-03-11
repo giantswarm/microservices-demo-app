@@ -1,0 +1,15 @@
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-from-frontend
+  namespace: {{.Release.Namespace}}
+spec:
+  from:
+  {{- range $i := until (.Values.httproute.namespaces.number | int) }}
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    namespace: loadtesting-{{ $i }}     # which namespace is allowed to reference
+  {{- end }}
+  to:
+  - group: ""
+    kind: Service

@@ -1,0 +1,75 @@
+apiVersion: k6.io/v1alpha1
+kind: TestRun
+metadata:
+  name: envoy-gateway-load-test
+  namespace: gs-k6-operator
+spec:
+  parallelism: 4
+  # Allows to have logs in the runner pods.
+  quiet: "false"
+  # k6-operator will clean up the generated resources after the test is completed.
+  cleanup: 'post'
+  script:
+    configMap:
+      name: envoy-load-testing-scenario
+      file: envoy-load-testing.js
+  separate: false
+  initializer:
+    image: gsoci.azurecr.io/giantswarm/k6:1.6.0
+    containerSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+      runAsGroup: 1000
+      readOnlyRootFilesystem: false
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      seccompProfile:
+        type: RuntimeDefault
+    securityContext:
+      fsGroup: 1000
+      runAsGroup: 1000
+      runAsNonRoot: true
+      runAsUser: 1000
+      seccompProfile:
+        type: RuntimeDefault
+  starter:
+    containerSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+      runAsGroup: 1000
+      readOnlyRootFilesystem: false
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      seccompProfile:
+        type: RuntimeDefault
+    securityContext:
+      fsGroup: 1000
+      runAsGroup: 1000
+      runAsNonRoot: true
+      runAsUser: 1000
+      seccompProfile:
+        type: RuntimeDefault
+  runner:
+    image: gsoci.azurecr.io/giantswarm/k6:1.6.0
+    containerSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+      runAsGroup: 1000
+      readOnlyRootFilesystem: false
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      seccompProfile:
+        type: RuntimeDefault
+    securityContext:
+      fsGroup: 1000
+      runAsGroup: 1000
+      runAsNonRoot: true
+      runAsUser: 1000
+      seccompProfile:
+        type: RuntimeDefault

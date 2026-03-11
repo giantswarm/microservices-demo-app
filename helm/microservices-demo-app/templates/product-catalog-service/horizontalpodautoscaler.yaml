@@ -1,0 +1,21 @@
+{{- if and .Values.productCatalogService.create .Values.productCatalogService.hpa.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Values.productCatalogService.name }}-hpa
+  namespace: loadtesting
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Values.productCatalogService.name }}
+  minReplicas: {{ .Values.productCatalogService.hpa.minReplicas | default 1 }}
+  maxReplicas: {{ .Values.productCatalogService.hpa.maxReplicas | default 5 }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.productCatalogService.hpa.targetCPUUtilizationPercentage | default 80 }}
+{{- end }}
