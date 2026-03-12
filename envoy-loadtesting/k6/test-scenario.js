@@ -5,7 +5,7 @@ const ENDPOINTS = 10;
 
 // const ENVOY_BASE_DOMAIN = "envoytesting.gaws2.gigantic.io";
 // const NGINX_BASE_DOMAIN = "nginxtesting.gaws2.gigantic.io";
-const BASE_DOMAIN = "envoytesting.gaws2.gigantic.io";
+const BASE_DOMAIN = "envoyloadtesting.gaws2.gigantic.io";
 
 function pickEnvoyBaseUrl() {
   const n = Math.floor(Math.random() * ENDPOINTS);

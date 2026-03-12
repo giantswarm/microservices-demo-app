@@ -1,0 +1,92 @@
+apiVersion: v1
+data:
+  test-scenario.js: "import http from \"k6/http\";\nimport { check, group, sleep }
+    from \"k6\";\n\nconst ENDPOINTS = 10;\n\n// const ENVOY_BASE_DOMAIN = \"envoytesting.gaws2.gigantic.io\";\n//
+    const NGINX_BASE_DOMAIN = \"nginxtesting.gaws2.gigantic.io\";\nconst BASE_DOMAIN
+    = \"envoytesting.gaws2.gigantic.io\";\n\nfunction pickEnvoyBaseUrl() {\n  const
+    n = Math.floor(Math.random() * ENDPOINTS);\n  return `https://onlineboutique.loadtesting-${n}.${BASE_DOMAIN}`;\n}\n\nfunction
+    pickNginxBaseUrl() {\n  const n = Math.floor(Math.random() * ENDPOINTS);\n  return
+    `https://nginx-onlineboutique-${n}.loadtesting.${BASE_DOMAIN}`;\n}\n\nconst PRODUCTS
+    = [\n  \"OLJCESPC7Z\", \"66VCHSJNUP\", \"1YMWWN1N4O\", \"L9ECAV7KIM\",\n  \"2ZYFJ3GM2N\",
+    \"0PUK6V6EV0\", \"LS4PSXUNUM\", \"9SIQT8TOJO\", \"6E92ZMYYFZ\",\n];\n\nconst CURRENCIES
+    = [\"EUR\", \"USD\", \"JPY\", \"CAD\", \"GBP\", \"TRY\"];\n\nconst FLOWS = [\n
+    \ { name: \"home\", weight: 1 },\n  { name: \"browseProduct\", weight: 10 },\n
+    \ { name: \"viewCart\", weight: 3 },\n  { name: \"addToCart\", weight: 2 },\n
+    \ { name: \"setCurrency\", weight: 2 },\n  { name: \"checkout\", weight: 1 },\n];\n\n//
+    Scenario config shared between both controllers\nconst SCENARIO_CONFIG = {\n  executor:
+    \"constant-arrival-rate\",\n  rate: 26,        // ~1.95 req/iter → ~50 HTTP req/s
+    per controller\n  timeUnit: \"1s\",\n  duration: \"5m\",\n  preAllocatedVUs: 50,\n
+    \ maxVUs: 150,\n  gracefulStop: \"30s\",\n};\n\nexport const options = {\n  scenarios:
+    {\n    envoy_simulation: {\n      ...SCENARIO_CONFIG,\n      exec: \"envoyScenario\",\n
+    \   },\n    nginx_simulation: {\n      ...SCENARIO_CONFIG,\n      exec: \"nginxScenario\",\n
+    \   },\n  },\n  thresholds: {\n    // Per-controller latency thresholds for direct
+    comparison\n    \"http_req_duration{scenario:envoy_simulation}\": [\"p(95)<3000\",
+    \"p(99)<5000\"],\n    \"http_req_duration{scenario:nginx_simulation}\": [\"p(95)<3000\",
+    \"p(99)<5000\"],\n    \"http_req_failed{scenario:envoy_simulation}\": [\"rate<0.05\"],\n
+    \   \"http_req_failed{scenario:nginx_simulation}\": [\"rate<0.05\"],\n    // HTTP/2
+    check only applies to Envoy; scope it to avoid tainting nginx checks rate\n    \"checks{scenario:envoy_simulation}\":
+    [\"rate>0.90\"],\n    \"checks{scenario:nginx_simulation}\": [\"rate>0.90\"],\n
+    \ },\n};\n\n// --- Utility functions ---\n\nfunction weightedRandom(items) {\n
+    \ const total = items.reduce((sum, item) => sum + item.weight, 0);\n  let rand
+    = Math.random() * total;\n  for (const item of items) {\n    rand -= item.weight;\n
+    \   if (rand <= 0) return item.name;\n  }\n  return items[items.length - 1].name;\n}\n\nfunction
+    randomItem(arr) {\n  return arr[Math.floor(Math.random() * arr.length)];\n}\n\nfunction
+    randomInt(min, max) {\n  return Math.floor(Math.random() * (max - min + 1)) +
+    min;\n}\n\nfunction thinkTime(minSec, maxSec) {\n  sleep(Math.random() * (maxSec
+    - minSec) + minSec);\n}\n\n// --- User flow functions ---\n// checkHttp2=true
+    for Envoy (HTTP/2 end-to-end), false for NGINX (HTTP/1.1 upstream)\n\nfunction
+    browseHome(baseUrl, checkHttp2 = true) {\n  group(\"Browse Homepage\", function
+    () {\n    const res = http.get(`${baseUrl}/`);\n    check(res, {\n      \"homepage
+    status 200\": (r) => r.status === 200,\n      ...(checkHttp2 && { \"protocol is
+    HTTP/2\": (r) => r.proto === \"HTTP/2.0\" }),\n    });\n  });\n}\n\nfunction browseProduct(baseUrl,
+    checkHttp2 = true) {\n  group(\"Browse Product\", function () {\n    const res
+    = http.get(`${baseUrl}/`);\n    check(res, {\n      \"homepage status 200\": (r)
+    => r.status === 200,\n      ...(checkHttp2 && { \"protocol is HTTP/2\": (r) =>
+    r.proto === \"HTTP/2.0\" }),\n    });\n\n    thinkTime(1, 3);\n\n    const productId
+    = randomItem(PRODUCTS);\n    const productRes = http.get(`${baseUrl}/product/${productId}`);\n
+    \   check(productRes, {\n      \"product page status 200\": (r) => r.status ===
+    200,\n      ...(checkHttp2 && { \"protocol is HTTP/2\": (r) => r.proto === \"HTTP/2.0\"
+    }),\n    });\n  });\n}\n\nfunction viewCart(baseUrl, checkHttp2 = true) {\n  group(\"View
+    Cart\", function () {\n    const res = http.get(`${baseUrl}/cart`);\n    check(res,
+    {\n      \"cart page status 200\": (r) => r.status === 200,\n      ...(checkHttp2
+    && { \"protocol is HTTP/2\": (r) => r.proto === \"HTTP/2.0\" }),\n    });\n  });\n}\n\nfunction
+    addToCart(baseUrl, checkHttp2 = true) {\n  group(\"Add to Cart\", function ()
+    {\n    const productId = randomItem(PRODUCTS);\n\n    const productRes = http.get(`${baseUrl}/product/${productId}`);\n
+    \   check(productRes, {\n      \"product page status 200\": (r) => r.status ===
+    200,\n      ...(checkHttp2 && { \"protocol is HTTP/2\": (r) => r.proto === \"HTTP/2.0\"
+    }),\n    });\n\n    thinkTime(1, 3);\n\n    const cartRes = http.post(`${baseUrl}/cart`,
+    {\n      product_id: productId,\n      quantity: String(randomInt(1, 5)),\n    });\n
+    \   check(cartRes, {\n      \"add to cart redirected to cart page\": (r) => r.status
+    === 200,\n      ...(checkHttp2 && { \"protocol is HTTP/2\": (r) => r.proto ===
+    \"HTTP/2.0\" }),\n    });\n  });\n}\n\nfunction setCurrencyFlow(baseUrl, checkHttp2
+    = true) {\n  group(\"Set Currency\", function () {\n    const res = http.post(`${baseUrl}/setCurrency`,
+    {\n      currency_code: randomItem(CURRENCIES),\n    });\n    check(res, {\n      \"set
+    currency redirected OK\": (r) => r.status === 200,\n      ...(checkHttp2 && {
+    \"protocol is HTTP/2\": (r) => r.proto === \"HTTP/2.0\" }),\n    });\n  });\n}\n\nfunction
+    checkoutFlow(baseUrl, checkHttp2 = true) {\n  group(\"Checkout\", function ()
+    {\n    const productId = randomItem(PRODUCTS);\n    const cartRes = http.post(`${baseUrl}/cart`,
+    {\n      product_id: productId,\n      quantity: \"1\",\n    });\n    check(cartRes,
+    {\n      \"add to cart for checkout OK\": (r) => r.status === 200,\n    });\n\n
+    \   thinkTime(1, 3);\n\n    const orderRes = http.post(`${baseUrl}/cart/checkout`,
+    {\n      email: `user${randomInt(1, 10000)}@example.com`,\n      street_address:
+    \"1600 Amphitheatre Parkway\",\n      zip_code: \"94043\",\n      city: \"Mountain
+    View\",\n      state: \"CA\",\n      country: \"United States\",\n      credit_card_number:
+    \"4432801561520454\",\n      credit_card_expiration_month: \"1\",\n      credit_card_expiration_year:
+    \"2027\",\n      credit_card_cvv: \"672\",\n    });\n    check(orderRes, {\n      \"checkout
+    status 200\": (r) => r.status === 200,\n      ...(checkHttp2 && { \"protocol is
+    HTTP/2\": (r) => r.proto === \"HTTP/2.0\" }),\n      \"order confirmation page\":
+    (r) => r.body.includes(\"Your order is complete\"),\n    });\n  });\n}\n\n// ---
+    Shared flow dispatcher ---\n\nfunction runFlow(baseUrl, checkHttp2) {\n  const
+    flow = weightedRandom(FLOWS);\n  switch (flow) {\n    case \"home\":\n      browseHome(baseUrl,
+    checkHttp2); \n      break;\n    case \"browseProduct\":\n      browseProduct(baseUrl,
+    checkHttp2);\n      break;\n    case \"viewCart\":\n      viewCart(baseUrl, checkHttp2);\n
+    \     break;\n    case \"addToCart\":\n      addToCart(baseUrl, checkHttp2);\n
+    \     break;\n    case \"setCurrency\":\n      setCurrencyFlow(baseUrl, checkHttp2);\n
+    \     break;\n    case \"checkout\":\n      checkoutFlow(baseUrl, checkHttp2);\n
+    \     break;\n  }\n}\n\n// --- Scenario entry points ---\n\nexport function envoyScenario()
+    {\n  runFlow(pickEnvoyBaseUrl(), true);\n}\n\nexport function nginxScenario()
+    {\n  runFlow(pickNginxBaseUrl(), false);\n}\n"
+kind: ConfigMap
+metadata:
+  name: envoy-load-testing-scenario
+  namespace: gs-k6-operator
