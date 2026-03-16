@@ -26,15 +26,14 @@ ingress:
   number: 10
   customIssuer:
     enabled: false
-    acmeDnsHost: https://acmedns.example.com  # URL of the acme-dns server
-    acmeDnsSecretName: acme-dns               # Secret pre-created with acme-dns account JSON
+    acmeDnsHost: https://acmedns.example.com  
+    acmeDnsSecretName: acme-dns
     acmeDnsSecretKey: acmedns.json
   customCertificate:
     enabled: true
   annotations: {}
   base: envoyloadtesting.gaws2.gigantic.io
   host: nginx-onlineboutique
-
 
 httproute:
   enabled: true

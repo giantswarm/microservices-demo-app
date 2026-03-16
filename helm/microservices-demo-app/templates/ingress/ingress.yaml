@@ -10,12 +10,13 @@ metadata:
   {{- with $.Values.ingress.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
+    external-dns.alpha.kubernetes.io/hostname: "*.{{ $.Values.ingress.host}}-{{ $i }}.{{ $.Release.Namespace }}.{{ $.Values.ingress.base }}"
   {{- end }}
 spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - {{ $.Values.ingress.host }}-{{ $i }}.{{ $.Release.Namespace }}.{{ $.Values.ingress.base }}
+        - '*.{{ $.Release.Namespace }}.{{ $.Values.ingress.base }}'
       secretName: nginx-ingress-wildcard-tls
   rules:
     - host: {{ $.Values.ingress.host}}-{{ $i }}.{{ $.Release.Namespace }}.{{ $.Values.ingress.base }}

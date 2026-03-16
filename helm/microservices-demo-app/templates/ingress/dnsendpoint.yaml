@@ -19,7 +19,7 @@ spec:
     recordTTL: 300
     recordType: CNAME
     targets:
-    - gateway.{{ $.Values.ingress.base }}
+    - ingress.{{ $.Values.ingress.base }}
 {{- end }}
 {{- end }}
 {{- end }}
