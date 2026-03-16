@@ -35,6 +35,9 @@ tsh kube login "${MC}"-"${WC}"
 # set the proxy protocol to optional in the default CTP
 kubectl patch clienttrafficpolicy gateway-giantswarm-default -n envoy-gateway-system --type merge -p '{"spec":{"proxyProtocol":{"optional":true}}}'
 kubectl create ns loadtesting
+until kubectl get ingressclass nginx &>/dev/null; do
+  echo "Waiting for nginx IngressClass..."; sleep 60
+done && echo "nginx IngressClass is ready"
 helm install onlineboutique helm-chart -n loadtesting
 echo "microservice-demo chart deployed."
 
