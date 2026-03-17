@@ -76,7 +76,7 @@ spec:
     configMap:
       name: envoyloadtesting-gateway-api-bundle
       namespace: org-giantswarm
-  version: 1.12.9
+  version: 1.12.11
 ---
 apiVersion: v1
 data:
