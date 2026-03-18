@@ -3,8 +3,6 @@ import { check, group, sleep } from "k6";
 
 const ENDPOINTS = 10;
 
-// const ENVOY_BASE_DOMAIN = "envoytesting.gaws2.gigantic.io";
-// const NGINX_BASE_DOMAIN = "nginxtesting.gaws2.gigantic.io";
 const BASE_DOMAIN = "envoyloadtesting.gaws2.gigantic.io";
 
 function pickEnvoyBaseUrl() {
@@ -34,25 +32,35 @@ const FLOWS = [
 ];
 
 // Scenario config shared between both controllers
+const SCENARIO_DURATION_SECONDS = 1200; // 20m
+
+// Configurable wait between scenarios (in seconds).
+const WAIT_BETWEEN_SCENARIOS = 300; // 5m
+
 const SCENARIO_CONFIG = {
   executor: "constant-arrival-rate",
   rate: 26,        // ~1.95 req/iter → ~50 HTTP req/s per controller
   timeUnit: "1s",
-  duration: "5m",
+  duration: `${SCENARIO_DURATION_SECONDS}s`,
   preAllocatedVUs: 50,
   maxVUs: 150,
   gracefulStop: "30s",
 };
+
+// Stagger scenario start times to avoid synchronized request bursts; Envoy starts immediately, nginx starts after Envoy's duration
+const nginxStartTime = `${SCENARIO_DURATION_SECONDS + WAIT_BETWEEN_SCENARIOS}s`;
 
 export const options = {
   scenarios: {
     envoy_simulation: {
       ...SCENARIO_CONFIG,
       exec: "envoyScenario",
+      startTime: "0s",
     },
     nginx_simulation: {
       ...SCENARIO_CONFIG,
       exec: "nginxScenario",
+      startTime: nginxStartTime,
     },
   },
   thresholds: {
