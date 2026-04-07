@@ -101,8 +101,6 @@ cmd_wc() {
 }
 
 cmd_app() {
-  log "Logging into workload cluster (tsh kube login ${MC}-${WC})..."
-  tsh kube login "${MC}-${WC}"
 
   log "Patching ClientTrafficPolicy for optional proxy protocol... (context=${WC_CONTEXT})"
   kwc patch clienttrafficpolicy gateway-giantswarm-default -n envoy-gateway-system \
