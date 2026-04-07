@@ -1,0 +1,31 @@
+global:
+  apps:
+    certManager:
+      values:
+        config:
+          apiVersion: controller.config.cert-manager.io/v1alpha1
+          enableGatewayAPI: true
+          kind: ControllerConfiguration
+  connectivity:
+    availabilityZoneUsageLimit: 3
+    certManager:
+      useDnsChallenges: true
+    network: {}
+    topology: {}
+  controlPlane: {}
+  metadata:
+    description: Test load testing setup
+    name: $(WC)
+    organization: giantswarm
+    preventDeletion: false
+  nodePools:
+    nodepool0:
+      availabilityZones:
+      - $(AZ)
+      instanceType: m5.xlarge
+      maxSize: 10
+      minSize: 3
+      rootVolumeSizeGB: 8
+  providerSpecific: {}
+  release:
+    version: $(RELEASE)

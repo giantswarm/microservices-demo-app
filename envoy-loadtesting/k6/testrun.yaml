@@ -2,7 +2,7 @@ apiVersion: k6.io/v1alpha1
 kind: TestRun
 metadata:
   name: envoy-gateway-load-test
-  namespace: gs-k6-operator
+  namespace: $(K6_NAMESPACE)
 spec:
   parallelism: 4
   # Allows to have logs in the runner pods.
@@ -12,10 +12,10 @@ spec:
   script:
     configMap:
       name: envoy-load-testing-scenario
-      file: envoy-load-testing.js
+      file: test-scenario.js
   separate: false
   initializer:
-    image: gsoci.azurecr.io/giantswarm/k6:1.6.0
+    image: $(K6_IMAGE)
     containerSecurityContext:
       runAsNonRoot: true
       runAsUser: 1000
@@ -54,7 +54,35 @@ spec:
       seccompProfile:
         type: RuntimeDefault
   runner:
-    image: gsoci.azurecr.io/giantswarm/k6:1.6.0
+    image: $(K6_IMAGE)
+    env:
+      # Infrastructure — composed from shared WC + BASE_DOMAIN
+      - name: ENDPOINTS
+        value: "$(ENDPOINTS)"
+      - name: BASE_DOMAIN
+        value: "$(WC).$(BASE_DOMAIN)"
+      # Scenario timing & load shape
+      - name: SCENARIO_DURATION_SECONDS
+        value: "$(SCENARIO_DURATION_SECONDS)"
+      - name: WAIT_BETWEEN_SCENARIOS
+        value: "$(WAIT_BETWEEN_SCENARIOS)"
+      - name: ARRIVAL_RATE
+        value: "$(ARRIVAL_RATE)"
+      - name: PRE_ALLOCATED_VUS
+        value: "$(PRE_ALLOCATED_VUS)"
+      - name: MAX_VUS
+        value: "$(MAX_VUS)"
+      - name: GRACEFUL_STOP
+        value: "$(GRACEFUL_STOP)"
+      # SLO thresholds (giantswarm/giantswarm#35147)
+      - name: SLO_P95_LATENCY_MS
+        value: "$(SLO_P95_LATENCY_MS)"
+      - name: SLO_P99_LATENCY_MS
+        value: "$(SLO_P99_LATENCY_MS)"
+      - name: SLO_ERROR_RATE
+        value: "$(SLO_ERROR_RATE)"
+      - name: SLO_CHECKS_RATE
+        value: "$(SLO_CHECKS_RATE)"
     containerSecurityContext:
       runAsNonRoot: true
       runAsUser: 1000

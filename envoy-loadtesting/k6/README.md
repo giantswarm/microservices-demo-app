@@ -1,12 +1,30 @@
-# Running the k6 test scenario
+# k6 Load Testing
 
-In order to run the k6 test scenario, you have to run the `deploy-test.sh` script when your kubeconfig is pointing to a cluster running the k6-operator. Currently, Adidas is running the operator on its `alba-seu01` cluster and has the `gs-k6-operator` namespace dedicated to the deployment of TestRun CRs. This is important as running k6 tests require several kyverno PolicyExceptions to allow the generated pods to work as expected.
+k6 test scenario and TestRun CRD for comparing Envoy Gateway vs Nginx Ingress performance.
 
-This folder contains 4 files (not counting this one):
+## Configuration
 
-- **test-scenario.js**: this is the JS test scenario file.
-- **testrun.yaml**: this file contains the TestRun CR k6 needs to run.
-- **configmap.yaml**: this file contains the configMap with the JS test scenario file as data.
-- **deploy-test.sh**: this script generates the configmap.yaml file from the test-scenario.js file and then deploys both the configmap and the testrun CR to the current context's kubernetes cluster.
+All tunables are in the shared `../config.env`. This directory is built as part of the
+parent kustomization — it cannot be built standalone.
 
-For more information concerning how to run k6 tests, please refer to the [official k6 documentation](https://grafana.com/docs/k6/latest/set-up/set-up-distributed-k6/).
+```bash
+# Build (from envoy-loadtesting/)
+kubectl kustomize ..
+
+# Deploy k6 resources only
+kubectl kustomize .. | yq 'select(.metadata.namespace == "gs-k6-operator")' | kubectl apply -f -
+
+# Or use the deploy script
+./deploy-test.sh
+```
+
+## Structure
+
+- `test-scenario.js` — k6 test scenario (reads tunables from `__ENV` at runtime)
+- `testrun.yaml` — k6-operator TestRun CRD with `$(VAR)` placeholders
+- `kustomization.yaml` — generates the test script ConfigMap
+
+## How it connects to wc-deployment
+
+The k6 `BASE_DOMAIN` env var is composed as `$(WC).$(BASE_DOMAIN)` — so changing
+`WC=mycluster` in `../config.env` automatically targets `mycluster.gaws2.gigantic.io`.

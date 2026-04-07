@@ -1,0 +1,36 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  annotations:
+    application.giantswarm.io/team: cabbage
+  name: $(WC)-microservices-demo-app
+  namespace: org-giantswarm
+spec:
+  interval: 1h
+  ref:
+    tag: 0.1.0
+  timeout: 60s
+  url: oci://gsoci.azurecr.io/charts/giantswarm/microservices-demo-app
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  annotations:
+    application.giantswarm.io/team: cabbage
+  labels:
+    giantswarm.io/cluster: $(WC)
+  name: $(WC)-microservices-demo-app
+  namespace: org-giantswarm
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: $(WC)-microservices-demo-app
+  install:
+    createNamespace: true
+  interval: 1h0m0s
+  kubeConfig:
+    secretRef:
+      name: $(WC)-kubeconfig
+  releaseName: $(WC)-microservices-demo-app
+  storageNamespace: $(WC)-microservices-demo-app
+  targetNamespace: $(WC)-microservices-demo-app

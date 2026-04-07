@@ -1,0 +1,50 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# This kustomization is built as part of the parent (envoy-loadtesting/).
+# All $(VAR) placeholders are resolved by the parent's vars.
+# Build from the parent: kubectl kustomize envoy-loadtesting/
+
+# --- ConfigMaps (generated from value files) -----------------
+configMapGenerator:
+- name: $(WC)-userconfig
+  namespace: org-giantswarm
+  files:
+  - values=values/cluster-userconfig.yaml
+  options:
+    disableNameSuffixHash: true
+    labels:
+      giantswarm.io/cluster: $(WC)
+
+- name: $(WC)-gateway-api-bundle
+  namespace: org-giantswarm
+  files:
+  - values=values/gateway-api-bundle.yaml
+  options:
+    disableNameSuffixHash: true
+    labels:
+      app-operator.giantswarm.io/watching: "true"
+
+- name: $(WC)-aws-lb-controller-bundle-user-values
+  namespace: org-giantswarm
+  files:
+  - values.yaml=values/aws-lb-controller.yaml
+  options:
+    disableNameSuffixHash: true
+    labels:
+      app-operator.giantswarm.io/watching: "true"
+
+- name: $(WC)-ingress-nginx-user-values
+  namespace: org-giantswarm
+  files:
+  - values.yaml=values/ingress-nginx.yaml
+  options:
+    disableNameSuffixHash: true
+    labels:
+      app-operator.giantswarm.io/watching: "true"
+
+# --- App CRs -------------------------------------------------
+resources:
+- cluster.yaml
+- additional-apps.yaml
+- loadtesting-app.yaml

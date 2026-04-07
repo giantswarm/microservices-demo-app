@@ -1,0 +1,37 @@
+varReference:
+
+# --- ConfigMap fields ---
+- path: metadata/name
+  kind: ConfigMap
+- path: metadata/namespace
+  kind: ConfigMap
+- path: metadata/labels
+  kind: ConfigMap
+- path: data
+  kind: ConfigMap
+
+# --- App CR fields (application.giantswarm.io) ---
+- path: metadata/name
+  kind: App
+- path: metadata/labels
+  kind: App
+- path: spec/userConfig/configMap/name
+  kind: App
+- path: spec/config/configMap/name
+  kind: App
+- path: spec/kubeConfig/context/name
+  kind: App
+- path: spec/kubeConfig/secret/name
+  kind: App
+- path: spec/version
+  kind: App
+
+# --- TestRun fields (k6.io) ---
+- path: metadata/namespace
+  kind: TestRun
+- path: spec/initializer/image
+  kind: TestRun
+- path: spec/runner/image
+  kind: TestRun
+- path: spec/runner/env/value
+  kind: TestRun

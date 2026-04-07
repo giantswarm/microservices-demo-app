@@ -1,0 +1,91 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# ============================================================
+# Envoy Gateway Load Testing — Top-Level Kustomization
+# ============================================================
+# All configuration lives in config.env. Kustomize vars resolve
+# $(VAR) placeholders across both sub-directories.
+#
+# Build everything:           kubectl kustomize .
+# Build & apply WC infra:    kubectl kustomize . | yq 'select(.metadata.namespace == "org-giantswarm")' | kubectl apply -f -
+# Build & apply k6 tests:    kubectl kustomize . | yq 'select(.metadata.namespace != "org-giantswarm")' | kubectl apply -f -
+# ============================================================
+
+configurations:
+- var-reference.yaml
+
+# --- Variables (not deployed, used as var source) ---
+configMapGenerator:
+- name: cluster-variables
+  envs:
+  - config.env
+  options:
+    disableNameSuffixHash: true
+    annotations:
+      config.kubernetes.io/local-config: "true"
+
+# --- Sub-kustomizations ---
+resources:
+- wc-deployment
+- k6
+
+# --- Vars: ALL tunables sourced from config.env ---
+vars:
+# Shared infrastructure
+- name: WC
+  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
+  fieldref: { fieldpath: data.WC }
+- name: MC
+  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
+  fieldref: { fieldpath: data.MC }
+- name: BASE_DOMAIN
+  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
+  fieldref: { fieldpath: data.BASE_DOMAIN }
+- name: AZ
+  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
+  fieldref: { fieldpath: data.AZ }
+- name: RELEASE
+  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
+  fieldref: { fieldpath: data.RELEASE }
+
+# k6 load testing
+- name: K6_NAMESPACE
+  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
+  fieldref: { fieldpath: data.K6_NAMESPACE }
+- name: K6_IMAGE
+  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
+  fieldref: { fieldpath: data.K6_IMAGE }
+- name: ENDPOINTS
+  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
+  fieldref: { fieldpath: data.ENDPOINTS }
+- name: SCENARIO_DURATION_SECONDS
+  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
+  fieldref: { fieldpath: data.SCENARIO_DURATION_SECONDS }
+- name: WAIT_BETWEEN_SCENARIOS
+  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
+  fieldref: { fieldpath: data.WAIT_BETWEEN_SCENARIOS }
+- name: ARRIVAL_RATE
+  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
+  fieldref: { fieldpath: data.ARRIVAL_RATE }
+- name: PRE_ALLOCATED_VUS
+  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
+  fieldref: { fieldpath: data.PRE_ALLOCATED_VUS }
+- name: MAX_VUS
+  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
+  fieldref: { fieldpath: data.MAX_VUS }
+- name: GRACEFUL_STOP
+  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
+  fieldref: { fieldpath: data.GRACEFUL_STOP }
+- name: SLO_P95_LATENCY_MS
+  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
+  fieldref: { fieldpath: data.SLO_P95_LATENCY_MS }
+- name: SLO_P99_LATENCY_MS
+  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
+  fieldref: { fieldpath: data.SLO_P99_LATENCY_MS }
+- name: SLO_ERROR_RATE
+  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
+  fieldref: { fieldpath: data.SLO_ERROR_RATE }
+- name: SLO_CHECKS_RATE
+  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
+  fieldref: { fieldpath: data.SLO_CHECKS_RATE }

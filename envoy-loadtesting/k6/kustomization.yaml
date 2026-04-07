@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# This kustomization is built as part of the parent (envoy-loadtesting/).
+# All $(VAR) placeholders are resolved by the parent's vars.
+# Build from the parent: kubectl kustomize envoy-loadtesting/
+
+configMapGenerator:
+- name: envoy-load-testing-scenario
+  namespace: $(K6_NAMESPACE)
+  files:
+  - test-scenario.js
+  options:
+    disableNameSuffixHash: true
+
+resources:
+- testrun.yaml
