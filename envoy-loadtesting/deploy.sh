@@ -49,7 +49,23 @@ EOF
 }
 
 render_manifests() {
-  kubectl kustomize "${SCRIPT_DIR}"
+  local tmpdir
+  tmpdir="$(mktemp -d)"
+
+  # Copy kustomize tree to temp directory
+  cp -a "${SCRIPT_DIR}/." "${tmpdir}/"
+
+  # Substitute env vars in values templates (these contain ${VAR} refs
+  # that kustomize replacements cannot reach inside opaque YAML strings)
+  envsubst '${WC} ${AZ} ${RELEASE}' \
+    < "${SCRIPT_DIR}/wc-deployment/values/cluster-userconfig.yaml" \
+    > "${tmpdir}/wc-deployment/values/cluster-userconfig.yaml"
+  envsubst '${WC} ${BASE_DOMAIN}' \
+    < "${SCRIPT_DIR}/wc-deployment/values/gateway-api-bundle.yaml" \
+    > "${tmpdir}/wc-deployment/values/gateway-api-bundle.yaml"
+
+  kubectl kustomize "${tmpdir}"
+  rm -rf "${tmpdir}"
 }
 
 render_mc_manifests() {

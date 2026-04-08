@@ -2,21 +2,21 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 # This kustomization is built as part of the parent (envoy-loadtesting/).
-# All $(VAR) placeholders are resolved by the parent's vars.
-# Build from the parent: kubectl kustomize envoy-loadtesting/
+# Placeholder values are resolved by the parent's replacements.
+# Build from the parent: ./deploy.sh preview
 
 # --- ConfigMaps (generated from value files) -----------------
 configMapGenerator:
-- name: $(WC)-userconfig
+- name: CLUSTER-userconfig
   namespace: org-giantswarm
   files:
   - values=values/cluster-userconfig.yaml
   options:
     disableNameSuffixHash: true
     labels:
-      giantswarm.io/cluster: $(WC)
+      giantswarm.io/cluster: CLUSTER
 
-- name: $(WC)-gateway-api-bundle
+- name: CLUSTER-gateway-api-bundle
   namespace: org-giantswarm
   files:
   - values=values/gateway-api-bundle.yaml
@@ -25,7 +25,7 @@ configMapGenerator:
     labels:
       app-operator.giantswarm.io/watching: "true"
 
-- name: $(WC)-aws-lb-controller-bundle-user-values
+- name: CLUSTER-aws-lb-controller-bundle-user-values
   namespace: org-giantswarm
   files:
   - values.yaml=values/aws-lb-controller.yaml
@@ -34,7 +34,7 @@ configMapGenerator:
     labels:
       app-operator.giantswarm.io/watching: "true"
 
-- name: $(WC)-ingress-nginx-user-values
+- name: CLUSTER-ingress-nginx-user-values
   namespace: org-giantswarm
   files:
   - values.yaml=values/ingress-nginx.yaml

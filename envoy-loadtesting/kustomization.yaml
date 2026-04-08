@@ -4,18 +4,15 @@ kind: Kustomization
 # ============================================================
 # Envoy Gateway Load Testing — Top-Level Kustomization
 # ============================================================
-# All configuration lives in config.env. Kustomize vars resolve
-# $(VAR) placeholders across both sub-directories.
+# Configuration lives in config.env. Kustomize replacements inject
+# values from the cluster-variables ConfigMap into resource fields.
+# Values files (cluster-userconfig, gateway-api-bundle) use envsubst
+# for embedded YAML — deploy.sh handles this preprocessing.
 #
-# Build everything:           kubectl kustomize .
-# Build & apply WC infra:    kubectl kustomize . | yq 'select(.metadata.namespace == "org-giantswarm")' | kubectl apply -f -
-# Build & apply k6 tests:    kubectl kustomize . | yq 'select(.metadata.namespace != "org-giantswarm")' | kubectl apply -f -
+# Build via deploy.sh:    ./deploy.sh preview
 # ============================================================
 
-configurations:
-- var-reference.yaml
-
-# --- Variables (not deployed, used as var source) ---
+# --- Variables (not deployed, used as replacement source) ---
 configMapGenerator:
 - name: cluster-variables
   envs:
@@ -30,62 +27,317 @@ resources:
 - wc-deployment
 - k6
 
-# --- Vars: ALL tunables sourced from config.env ---
-vars:
-# Shared infrastructure
-- name: WC
-  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
-  fieldref: { fieldpath: data.WC }
-- name: MC
-  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
-  fieldref: { fieldpath: data.MC }
-- name: BASE_DOMAIN
-  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
-  fieldref: { fieldpath: data.BASE_DOMAIN }
-- name: AZ
-  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
-  fieldref: { fieldpath: data.AZ }
-- name: RELEASE
-  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
-  fieldref: { fieldpath: data.RELEASE }
+# --- Replacements: values sourced from config.env ---
+replacements:
 
-# k6 load testing
-- name: K6_NAMESPACE
-  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
-  fieldref: { fieldpath: data.K6_NAMESPACE }
-- name: K6_IMAGE
-  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
-  fieldref: { fieldpath: data.K6_IMAGE }
-- name: ENDPOINTS
-  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
-  fieldref: { fieldpath: data.ENDPOINTS }
-- name: SCENARIO_DURATION_SECONDS
-  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
-  fieldref: { fieldpath: data.SCENARIO_DURATION_SECONDS }
-- name: WAIT_BETWEEN_SCENARIOS
-  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
-  fieldref: { fieldpath: data.WAIT_BETWEEN_SCENARIOS }
-- name: ARRIVAL_RATE
-  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
-  fieldref: { fieldpath: data.ARRIVAL_RATE }
-- name: PRE_ALLOCATED_VUS
-  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
-  fieldref: { fieldpath: data.PRE_ALLOCATED_VUS }
-- name: MAX_VUS
-  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
-  fieldref: { fieldpath: data.MAX_VUS }
-- name: GRACEFUL_STOP
-  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
-  fieldref: { fieldpath: data.GRACEFUL_STOP }
-- name: SLO_P95_LATENCY_MS
-  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
-  fieldref: { fieldpath: data.SLO_P95_LATENCY_MS }
-- name: SLO_P99_LATENCY_MS
-  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
-  fieldref: { fieldpath: data.SLO_P99_LATENCY_MS }
-- name: SLO_ERROR_RATE
-  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
-  fieldref: { fieldpath: data.SLO_ERROR_RATE }
-- name: SLO_CHECKS_RATE
-  objref: { kind: ConfigMap, name: cluster-variables, apiVersion: v1 }
-  fieldref: { fieldpath: data.SLO_CHECKS_RATE }
+# RELEASE -> cluster App version
+- source:
+    kind: ConfigMap
+    name: cluster-variables
+    fieldPath: data.RELEASE
+  targets:
+  - select:
+      kind: App
+      name: CLUSTER
+    fieldPaths:
+    - spec.version
+
+# BASE_DOMAIN -> TestRun env (second segment of "WC.BASE_DOMAIN")
+- source:
+    kind: ConfigMap
+    name: cluster-variables
+    fieldPath: data.BASE_DOMAIN
+  targets:
+  - select:
+      kind: TestRun
+      name: envoy-gateway-load-test
+    fieldPaths:
+    - spec.runner.env.[name=BASE_DOMAIN].value
+    options:
+      delimiter: '.'
+      index: 1
+
+# K6_NAMESPACE -> TestRun + scenario ConfigMap namespace
+- source:
+    kind: ConfigMap
+    name: cluster-variables
+    fieldPath: data.K6_NAMESPACE
+  targets:
+  - select:
+      kind: TestRun
+      name: envoy-gateway-load-test
+    fieldPaths:
+    - metadata.namespace
+  - select:
+      kind: ConfigMap
+      name: envoy-load-testing-scenario
+    fieldPaths:
+    - metadata.namespace
+
+# K6_IMAGE -> TestRun initializer + runner images
+- source:
+    kind: ConfigMap
+    name: cluster-variables
+    fieldPath: data.K6_IMAGE
+  targets:
+  - select:
+      kind: TestRun
+      name: envoy-gateway-load-test
+    fieldPaths:
+    - spec.initializer.image
+    - spec.runner.image
+
+# ENDPOINTS -> TestRun env
+- source:
+    kind: ConfigMap
+    name: cluster-variables
+    fieldPath: data.ENDPOINTS
+  targets:
+  - select:
+      kind: TestRun
+      name: envoy-gateway-load-test
+    fieldPaths:
+    - spec.runner.env.[name=ENDPOINTS].value
+
+# SCENARIO_DURATION_SECONDS -> TestRun env
+- source:
+    kind: ConfigMap
+    name: cluster-variables
+    fieldPath: data.SCENARIO_DURATION_SECONDS
+  targets:
+  - select:
+      kind: TestRun
+      name: envoy-gateway-load-test
+    fieldPaths:
+    - spec.runner.env.[name=SCENARIO_DURATION_SECONDS].value
+
+# WAIT_BETWEEN_SCENARIOS -> TestRun env
+- source:
+    kind: ConfigMap
+    name: cluster-variables
+    fieldPath: data.WAIT_BETWEEN_SCENARIOS
+  targets:
+  - select:
+      kind: TestRun
+      name: envoy-gateway-load-test
+    fieldPaths:
+    - spec.runner.env.[name=WAIT_BETWEEN_SCENARIOS].value
+
+# ARRIVAL_RATE -> TestRun env
+- source:
+    kind: ConfigMap
+    name: cluster-variables
+    fieldPath: data.ARRIVAL_RATE
+  targets:
+  - select:
+      kind: TestRun
+      name: envoy-gateway-load-test
+    fieldPaths:
+    - spec.runner.env.[name=ARRIVAL_RATE].value
+
+# PRE_ALLOCATED_VUS -> TestRun env
+- source:
+    kind: ConfigMap
+    name: cluster-variables
+    fieldPath: data.PRE_ALLOCATED_VUS
+  targets:
+  - select:
+      kind: TestRun
+      name: envoy-gateway-load-test
+    fieldPaths:
+    - spec.runner.env.[name=PRE_ALLOCATED_VUS].value
+
+# MAX_VUS -> TestRun env
+- source:
+    kind: ConfigMap
+    name: cluster-variables
+    fieldPath: data.MAX_VUS
+  targets:
+  - select:
+      kind: TestRun
+      name: envoy-gateway-load-test
+    fieldPaths:
+    - spec.runner.env.[name=MAX_VUS].value
+
+# GRACEFUL_STOP -> TestRun env
+- source:
+    kind: ConfigMap
+    name: cluster-variables
+    fieldPath: data.GRACEFUL_STOP
+  targets:
+  - select:
+      kind: TestRun
+      name: envoy-gateway-load-test
+    fieldPaths:
+    - spec.runner.env.[name=GRACEFUL_STOP].value
+
+# SLO_P95_LATENCY_MS -> TestRun env
+- source:
+    kind: ConfigMap
+    name: cluster-variables
+    fieldPath: data.SLO_P95_LATENCY_MS
+  targets:
+  - select:
+      kind: TestRun
+      name: envoy-gateway-load-test
+    fieldPaths:
+    - spec.runner.env.[name=SLO_P95_LATENCY_MS].value
+
+# SLO_P99_LATENCY_MS -> TestRun env
+- source:
+    kind: ConfigMap
+    name: cluster-variables
+    fieldPath: data.SLO_P99_LATENCY_MS
+  targets:
+  - select:
+      kind: TestRun
+      name: envoy-gateway-load-test
+    fieldPaths:
+    - spec.runner.env.[name=SLO_P99_LATENCY_MS].value
+
+# SLO_ERROR_RATE -> TestRun env
+- source:
+    kind: ConfigMap
+    name: cluster-variables
+    fieldPath: data.SLO_ERROR_RATE
+  targets:
+  - select:
+      kind: TestRun
+      name: envoy-gateway-load-test
+    fieldPaths:
+    - spec.runner.env.[name=SLO_ERROR_RATE].value
+
+# SLO_CHECKS_RATE -> TestRun env
+- source:
+    kind: ConfigMap
+    name: cluster-variables
+    fieldPath: data.SLO_CHECKS_RATE
+  targets:
+  - select:
+      kind: TestRun
+      name: envoy-gateway-load-test
+    fieldPaths:
+    - spec.runner.env.[name=SLO_CHECKS_RATE].value
+
+# WC -> all cluster-prefixed names, labels, annotations, refs
+# Delimiter '-' with index 0 replaces the CLUSTER prefix in compound
+# names (e.g. CLUSTER-ingress-nginx -> elt-gerald-ingress-nginx) and
+# works as a full replacement for bare CLUSTER values.
+- source:
+    kind: ConfigMap
+    name: cluster-variables
+    fieldPath: data.WC
+  targets:
+  # --- cluster App ---
+  - select:
+      kind: App
+      name: CLUSTER
+    fieldPaths:
+    - metadata.name
+    - spec.userConfig.configMap.name
+    options:
+      delimiter: '-'
+      index: 0
+  # --- gateway-api-bundle App ---
+  - select:
+      kind: App
+      name: CLUSTER-gateway-api-bundle
+    fieldPaths:
+    - metadata.name
+    - spec.config.configMap.name
+    - spec.userConfig.configMap.name
+    options:
+      delimiter: '-'
+      index: 0
+  # --- aws-lb-controller-bundle App ---
+  - select:
+      kind: App
+      name: CLUSTER-aws-lb-controller-bundle
+    fieldPaths:
+    - metadata.name
+    - metadata.labels.[giantswarm.io/cluster]
+    - metadata.annotations.[app-operator.giantswarm.io/depends-on]
+    - spec.userConfig.configMap.name
+    options:
+      delimiter: '-'
+      index: 0
+  # --- ingress-nginx App ---
+  - select:
+      kind: App
+      name: CLUSTER-ingress-nginx
+    fieldPaths:
+    - metadata.name
+    - metadata.labels.[giantswarm.io/cluster]
+    - metadata.annotations.[app-operator.giantswarm.io/depends-on]
+    - spec.config.configMap.name
+    - spec.kubeConfig.context.name
+    - spec.kubeConfig.secret.name
+    - spec.userConfig.configMap.name
+    options:
+      delimiter: '-'
+      index: 0
+  # --- microservices-demo-app OCIRepository ---
+  - select:
+      kind: OCIRepository
+      name: CLUSTER-microservices-demo-app
+    fieldPaths:
+    - metadata.name
+    options:
+      delimiter: '-'
+      index: 0
+  # --- microservices-demo-app HelmRelease ---
+  - select:
+      kind: HelmRelease
+      name: CLUSTER-microservices-demo-app
+    fieldPaths:
+    - metadata.name
+    - metadata.labels.[giantswarm.io/cluster]
+    - spec.chartRef.name
+    - spec.kubeConfig.secretRef.name
+    - spec.releaseName
+    options:
+      delimiter: '-'
+      index: 0
+  # --- ConfigMaps from configMapGenerator ---
+  - select:
+      kind: ConfigMap
+      name: CLUSTER-userconfig
+    fieldPaths:
+    - metadata.name
+    - metadata.labels.[giantswarm.io/cluster]
+    options:
+      delimiter: '-'
+      index: 0
+  - select:
+      kind: ConfigMap
+      name: CLUSTER-gateway-api-bundle
+    fieldPaths:
+    - metadata.name
+    options:
+      delimiter: '-'
+      index: 0
+  - select:
+      kind: ConfigMap
+      name: CLUSTER-aws-lb-controller-bundle-user-values
+    fieldPaths:
+    - metadata.name
+    options:
+      delimiter: '-'
+      index: 0
+  - select:
+      kind: ConfigMap
+      name: CLUSTER-ingress-nginx-user-values
+    fieldPaths:
+    - metadata.name
+    options:
+      delimiter: '-'
+      index: 0
+  # --- TestRun (WC part of composite BASE_DOMAIN env) ---
+  - select:
+      kind: TestRun
+      name: envoy-gateway-load-test
+    fieldPaths:
+    - spec.runner.env.[name=BASE_DOMAIN].value
+    options:
+      delimiter: '.'
+      index: 0

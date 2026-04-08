@@ -4,7 +4,7 @@ kind: App
 metadata:
   labels:
     app-operator.giantswarm.io/version: 0.0.0
-  name: $(WC)
+  name: CLUSTER
   namespace: org-giantswarm
 spec:
   catalog: cluster
@@ -26,6 +26,6 @@ spec:
   namespace: org-giantswarm
   userConfig:
     configMap:
-      name: $(WC)-userconfig
+      name: CLUSTER-userconfig
       namespace: org-giantswarm
-  version: $(RELEASE)
+  version: RELEASE_PLACEHOLDER

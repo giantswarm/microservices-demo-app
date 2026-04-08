@@ -39,7 +39,7 @@ apps:
               envoyProxy:
                 envoyService:
                   annotations:
-                    external-dns.alpha.kubernetes.io/hostname: gateway.$(WC).$(BASE_DOMAIN)
+                    external-dns.alpha.kubernetes.io/hostname: gateway.${WC}.${BASE_DOMAIN}
                     giantswarm.io/external-dns: managed
                     service.beta.kubernetes.io/aws-load-balancer-attributes: load_balancing.cross_zone.enabled=true
                     service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold: "2"
@@ -53,4 +53,4 @@ apps:
                   type: LoadBalancer
   gatewayApiCrds:
     enabled: true
-clusterID: $(WC)
+clusterID: ${WC}

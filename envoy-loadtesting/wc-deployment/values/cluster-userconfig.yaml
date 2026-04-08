@@ -15,17 +15,17 @@ global:
   controlPlane: {}
   metadata:
     description: Test load testing setup
-    name: $(WC)
+    name: ${WC}
     organization: giantswarm
     preventDeletion: false
   nodePools:
     nodepool0:
       availabilityZones:
-      - $(AZ)
+      - ${AZ}
       instanceType: m5.xlarge
       maxSize: 10
       minSize: 3
       rootVolumeSizeGB: 8
   providerSpecific: {}
   release:
-    version: $(RELEASE)
+    version: ${RELEASE}
