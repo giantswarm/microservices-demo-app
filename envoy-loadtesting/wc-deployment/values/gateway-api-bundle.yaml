@@ -2,13 +2,6 @@ apps:
   envoyGateway:
     enabled: true
     userConfig:
-          configMap:
-            values: |
-              install:
-                xlistenersets: "experimental"
-                gateways: "experimental"
-  envoyGateway:
-    userConfig:
       configMap:
         values: |
           config:
@@ -53,4 +46,10 @@ apps:
                   type: LoadBalancer
   gatewayApiCrds:
     enabled: true
+    userConfig:
+      configMap:
+        values: |
+          install:
+            xlistenersets: "experimental"
+            gateways: "experimental"
 clusterID: ${WC}
