@@ -102,9 +102,6 @@ cmd_wc() {
 
 cmd_app() {
 
-  log "Patching ClientTrafficPolicy for optional proxy protocol... (context=${WC_CONTEXT})"
-  kwc patch clienttrafficpolicy gateway-giantswarm-default -n envoy-gateway-system \
-    --type merge -p '{"spec":{"proxyProtocol":{"optional":true}}}'
 
   log "Creating loadtesting namespace..."
   kwc create ns loadtesting --dry-run=client -o yaml | kwc apply -f -
