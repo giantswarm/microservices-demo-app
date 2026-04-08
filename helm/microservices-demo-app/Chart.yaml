@@ -2,26 +2,20 @@
 # for details and background.
 
 apiVersion: v2
-
 # Version of the packaged app
 appVersion: v0.10.5
-
 # Make sure your name DOES NOT end in "app" or "-app".
 name: microservices-demo-app
-
 # Please describe what the app provides in a sentence or two.
 description: Please add description
-
 # URL of the GitHub repository that is the source of this Chart.yaml file.
 home: https://github.com/giantswarm/microservices-demo-app
-
 # If you have an icon/logo, you should add it to https://github.com/giantswarm/web-assets
 # and set the final URL here.
 icon: https://s.giantswarm.io/app-icons/giantswarm/1/light.svg
-
 sources:
-- https://github.com/giantswarm/microservices-demo-app
-- https://github.com/GoogleCloudPlatform/microservices-demo
+  - https://github.com/giantswarm/microservices-demo-app
+  - https://github.com/GoogleCloudPlatform/microservices-demo
 version: 0.1.0
 annotations:
   io.giantswarm.application.audience: giantswarm
