@@ -42,6 +42,8 @@ httproute:
   envoyProxy:
     enabled: false
   issuer:
+    enabled: true
+  listenerset:
     enabled: false
   clienttrafficpolicy:
     enabled: false
