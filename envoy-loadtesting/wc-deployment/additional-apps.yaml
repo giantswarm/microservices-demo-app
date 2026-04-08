@@ -49,6 +49,8 @@ spec:
 apiVersion: application.giantswarm.io/v1alpha1
 kind: App
 metadata:
+  annotations:
+    app-operator.giantswarm.io/depends-on: $(WC)-prometheus-operator-crd
   labels:
     app.kubernetes.io/name: ingress-nginx
     giantswarm.io/cluster: $(WC)
