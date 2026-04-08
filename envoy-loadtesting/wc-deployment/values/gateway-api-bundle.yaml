@@ -1,6 +1,21 @@
 apps:
   envoyGateway:
     enabled: true
+    userConfig:
+          configMap:
+            values: |
+              install:
+                xlistenersets: "experimental"
+                gateways: "experimental"
+  envoyGateway:
+    userConfig:
+      configMap:
+        values: |
+          config:
+            envoyGateway:
+              gatewayAPI:
+                enabled:
+                  - XListenerSet
   gatewayApiConfig:
     enabled: true
     userConfig:
@@ -22,7 +37,6 @@ apps:
           gatewayClasses:
             default:
               envoyProxy:
-                mergeGateways: true
                 envoyService:
                   annotations:
                     external-dns.alpha.kubernetes.io/hostname: gateway.$(WC).$(BASE_DOMAIN)
