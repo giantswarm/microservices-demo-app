@@ -32,5 +32,5 @@ spec:
     secretRef:
       name: $(WC)-kubeconfig
   releaseName: $(WC)-microservices-demo-app
-  storageNamespace: $(WC)-microservices-demo-app
-  targetNamespace: $(WC)-microservices-demo-app
+  storageNamespace: loadtesting
+  targetNamespace: loadtesting

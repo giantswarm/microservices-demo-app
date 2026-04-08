@@ -34,6 +34,8 @@ metadata:
   labels:
     giantswarm.io/cluster: $(WC)
     app-operator.giantswarm.io/version: 0.0.0
+  annotations:
+    app-operator.giantswarm.io/depends-on: $(WC)-kyverno-crds
 spec:
   catalog: giantswarm
   name: aws-lb-controller-bundle
