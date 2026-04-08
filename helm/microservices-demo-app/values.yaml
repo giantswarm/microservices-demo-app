@@ -26,7 +26,7 @@ ingress:
   number: 10
   customIssuer:
     enabled: false
-    acmeDnsHost: https://acmedns.example.com  
+    acmeDnsHost: https://acmedns.example.com
     acmeDnsSecretName: acme-dns
     acmeDnsSecretKey: acmedns.json
   customCertificate:
