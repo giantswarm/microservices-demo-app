@@ -4,7 +4,7 @@
 apiVersion: v2
 
 # Version of the packaged app
-appVersion: 0.0.1
+appVersion: v0.10.5
 
 # Make sure your name DOES NOT end in "app" or "-app".
 name: microservices-demo-app
@@ -20,7 +20,8 @@ home: https://github.com/giantswarm/microservices-demo-app
 icon: https://s.giantswarm.io/app-icons/giantswarm/1/light.svg
 
 sources:
-- https://github.com/some-org/some-repo
+- https://github.com/giantswarm/microservices-demo-app
+- https://github.com/GoogleCloudPlatform/microservices-demo
 version: 0.1.0
 annotations:
   io.giantswarm.application.audience: giantswarm
