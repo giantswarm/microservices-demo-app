@@ -24,7 +24,7 @@ spec:
     configMap:
       name: $(WC)-gateway-api-bundle
       namespace: org-giantswarm
-  version: 1.12.11
+  version: 1.14.0
 ---
 apiVersion: application.giantswarm.io/v1alpha1
 kind: App
@@ -44,7 +44,7 @@ spec:
     configMap:
       name: $(WC)-aws-lb-controller-bundle-user-values
       namespace: org-giantswarm
-  version: 5.0.1
+  version: 5.1.0
 ---
 apiVersion: application.giantswarm.io/v1alpha1
 kind: App
@@ -73,4 +73,4 @@ spec:
     configMap:
       name: $(WC)-ingress-nginx-user-values
       namespace: org-giantswarm
-  version: 4.2.3
+  version: 4.2.5
