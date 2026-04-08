@@ -22,7 +22,6 @@ err()  { echo -e "${RED}[$(date +%H:%M:%S)]${NC} $*" >&2; }
 
 # Shorthand kubectl wrappers per cluster
 kmc()  { kubectl --context="${MC_CONTEXT}" "$@"; }
-kwc()  { kubectl --context="${WC_CONTEXT}" "$@"; }
 kk6()  { kubectl --context="${K6_CONTEXT}" "$@"; }
 
 usage() {
@@ -42,23 +41,11 @@ Commands:
 
 Clusters (from config.env):
   MC_CONTEXT=${MC_CONTEXT}    (management cluster — WC App CRs)
-  WC_CONTEXT=${WC_CONTEXT}    (workload cluster — Helm chart, ingress, envoy)
   K6_CONTEXT=${K6_CONTEXT}    (k6 cluster — TestRun + scenario)
 
 Infrastructure:
   WC=${WC}  MC=${MC}  BASE_DOMAIN=${BASE_DOMAIN}  AZ=${AZ}  RELEASE=${RELEASE}
 EOF
-}
-
-check_prerequisites() {
-  local missing=()
-  for cmd in kubectl yq helm tsh curl; do
-    command -v "${cmd}" &>/dev/null || missing+=("${cmd}")
-  done
-  if [[ ${#missing[@]} -gt 0 ]]; then
-    err "Missing required tools: ${missing[*]}"
-    exit 1
-  fi
 }
 
 render_manifests() {
@@ -93,39 +80,51 @@ cmd_wc() {
   kmc wait --for=condition=Available -n org-giantswarm clusters.cluster.x-k8s.io "${WC}" --timeout=600s
   log "Workload cluster is ready."
 
+  log "Checking aws-lb-controller-bundle deployment status..."
+  kmc wait --for=jsonpath='{.status.release.status}'=deployed -n org-giantswarm app "${WC}"-aws-lb-controller-bundle --timeout=600s
+  log "aws-lb-controller-bundle is deployed."
+
   log "Waiting for gateway-api apps..."
   sleep 60
   kmc wait --for=jsonpath='{.status.release.status}'=deployed -n org-giantswarm app "${WC}"-gateway-api-crds --timeout=300s
   kmc wait --for=jsonpath='{.status.release.status}'=deployed -n org-giantswarm app "${WC}"-gateway-api-config --timeout=1200s
   log "gateway-api CRDs and config deployed."
+
+  log "Checking ingress-nginx deployment status..."
+  kmc wait --for=jsonpath='{.status.release.status}'=deployed -n org-giantswarm app "${WC}"-ingress-nginx --timeout=600s
+  log "ingress-nginx is deployed."
 }
 
 cmd_app() {
+  log "Checking microservices-demo-app HelmRelease..."
+  kmc wait --for=condition=Ready -n org-giantswarm helmrelease "${WC}"-microservices-demo-app --timeout=600s
+  log "microservices-demo-app HelmRelease is ready."
 
-
-  log "Creating loadtesting namespace..."
-  kwc create ns loadtesting --dry-run=client -o yaml | kwc apply -f -
-
-  log "Waiting for nginx IngressClass..."
-  until kwc get ingressclass nginx &>/dev/null; do
-    sleep 60
-  done
-  log "nginx IngressClass is ready."
-
-  kmc wait --for=jsonpath='{.status.release.status}'=deployed -n org-giantswarm app "${WC}"-gateway-api-config --timeout=1200s
-
-  log "Waiting for the demo app endpoint to become reachable..."
-  local url="https://onlineboutique.loadtesting-0.${WC}.${BASE_DOMAIN}/"
+  log "Checking demo app nginx ingress endpoint..."
+  local nginx_url="https://nginx-onlineboutique-0.${WC}-microservices-demo-app.${WC}.${BASE_DOMAIN}/"
   local attempts=0
-  until curl -sf --max-time 10 "${url}" | grep -q "</html>"; do
+  until curl -sf --max-time 10 "${nginx_url}" | grep -q "</html>"; do
     ((attempts++))
     if [[ ${attempts} -ge 20 ]]; then
-      err "Endpoint ${url} not reachable after ~60 min. Aborting."
+      err "Nginx endpoint ${nginx_url} not reachable after ~60 min. Aborting."
       exit 1
     fi
     sleep 180
   done
-  log "Demo app is reachable at ${url}"
+  log "Demo app is reachable via nginx at ${nginx_url}"
+
+  log "Checking demo app envoy gateway endpoint..."
+  local envoy_url="https://onlineboutique.loadtesting-0.${WC}.${BASE_DOMAIN}/"
+  attempts=0
+  until curl -sf --max-time 10 "${envoy_url}" | grep -q "</html>"; do
+    ((attempts++))
+    if [[ ${attempts} -ge 20 ]]; then
+      err "Envoy endpoint ${envoy_url} not reachable after ~60 min. Aborting."
+      exit 1
+    fi
+    sleep 180
+  done
+  log "Demo app is reachable via envoy at ${envoy_url}"
 }
 
 cmd_k6() {
@@ -138,7 +137,7 @@ cmd_k6() {
 
 cmd_all() {
   log "=== Full pipeline: WC → App → k6 ==="
-  log "  MC: ${MC_CONTEXT}  WC: ${WC_CONTEXT}  k6: ${K6_CONTEXT}"
+  log "  MC: ${MC_CONTEXT}  k6: ${K6_CONTEXT}"
   cmd_wc
   cmd_app
   cmd_k6
@@ -153,10 +152,6 @@ cmd_status() {
   echo ""
   log "Apps on MC (${MC_CONTEXT}):"
   kmc get app -n org-giantswarm -l "giantswarm.io/cluster=${WC}" 2>/dev/null || warn "  None found"
-
-  echo ""
-  log "Helm releases on WC (${WC_CONTEXT}):"
-  helm --kube-context="${WC_CONTEXT}" list -n loadtesting 2>/dev/null || warn "  Not reachable"
 
   echo ""
   log "k6 TestRuns (${K6_CONTEXT}):"
@@ -185,8 +180,6 @@ cmd_teardown() {
 # ------------------------------------------------------------------
 # Main
 # ------------------------------------------------------------------
-
-check_prerequisites
 
 case "${1:-}" in
   all)      cmd_all ;;

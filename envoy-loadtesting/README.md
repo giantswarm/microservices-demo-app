@@ -36,12 +36,11 @@ Three separate clusters are involved. Each gets its own kubectl context:
 
 | Variable      | Default                | Target cluster | What runs there |
 |---------------|------------------------|----------------|-----------------|
-| `MC_CONTEXT`  | `graveler`             | Management cluster | WC App CRs, ConfigMaps (`org-giantswarm` namespace) |
-| `WC_CONTEXT`  | `graveler-coolertyp`   | Workload cluster   | Helm chart (microservices-demo), ingress-nginx, envoy-gateway |
-| `K6_CONTEXT`  | `alba-seu01`           | k6 cluster         | k6-operator TestRun + scenario ConfigMap |
+| `MC_CONTEXT`  | `teleport.giantswarm.io-graveler`             | Management cluster | WC App CRs, ConfigMaps (`org-giantswarm` namespace) |
+| `K6_CONTEXT`  | `teleport.giantswarm.io-alba-seu01`           | k6 cluster         | k6-operator TestRun + scenario ConfigMap |
 
 ```
-  MC (graveler)                 WC (graveler-coolertyp)          k6 (alba-seu01)
+  MC (graveler)                 WC (graveler-envoyloadtesting)          k6 (alba-seu01)
   ─────────────                 ───────────────────────          ───────────────
   org-giantswarm namespace:     loadtesting namespace:           gs-k6-operator namespace:
   ├─ cluster-aws App CR         ├─ microservices-demo Helm       ├─ TestRun CR
@@ -54,7 +53,7 @@ Three separate clusters are involved. Each gets its own kubectl context:
 
 | Variable      | Default              | Description                          |
 |---------------|----------------------|--------------------------------------|
-| `WC`          | `coolertyp`          | Workload cluster name                |
+| `WC`          | `envoyloadtesting`          | Workload cluster name                |
 | `MC`          | `graveler`           | Management cluster name              |
 | `BASE_DOMAIN` | `gaws2.gigantic.io`  | Base DNS domain                      |
 | `AZ`          | `eu-north-1a`        | AWS availability zone for node pools |

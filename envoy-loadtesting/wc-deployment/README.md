@@ -7,7 +7,7 @@ parent kustomization — it cannot be built standalone.
 
 | Variable      | Default              | Description                          |
 |---------------|----------------------|--------------------------------------|
-| `WC`          | `coolertyp`          | Workload cluster name                |
+| `WC`          | `envoyloadtesting`          | Workload cluster name                |
 | `MC`          | `graveler`           | Management cluster name (deploy script) |
 | `BASE_DOMAIN` | `gaws2.gigantic.io`  | Base DNS domain                      |
 | `AZ`          | `eu-north-1a`        | AWS availability zone for node pools |
