@@ -1,0 +1,36 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  annotations:
+    application.giantswarm.io/team: cabbage
+  name: CLUSTER-microservices-demo-app
+  namespace: org-giantswarm
+spec:
+  interval: 1h
+  ref:
+    tag: 0.1.0
+  timeout: 60s
+  url: oci://gsoci.azurecr.io/charts/giantswarm/microservices-demo-app
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  annotations:
+    application.giantswarm.io/team: cabbage
+  labels:
+    giantswarm.io/cluster: CLUSTER
+  name: CLUSTER-microservices-demo-app
+  namespace: org-giantswarm
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: CLUSTER-microservices-demo-app
+  install:
+    createNamespace: true
+  interval: 1h0m0s
+  kubeConfig:
+    secretRef:
+      name: CLUSTER-kubeconfig
+  releaseName: CLUSTER-microservices-demo-app
+  storageNamespace: loadtesting
+  targetNamespace: loadtesting

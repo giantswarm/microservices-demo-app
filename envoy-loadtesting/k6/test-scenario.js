@@ -1,9 +1,26 @@
 import http from "k6/http";
 import { check, group, sleep } from "k6";
 
-const ENDPOINTS = 10;
+// All tunables read from environment variables (set in the TestRun CRD)
+// with sensible defaults so the script still works standalone.
 
-const BASE_DOMAIN = "envoyloadtesting.gaws2.gigantic.io";
+// Infrastructure
+const ENDPOINTS  = parseInt(__ENV.ENDPOINTS || "10", 10);
+const BASE_DOMAIN = __ENV.BASE_DOMAIN || "envoyloadtesting.gaws2.gigantic.io";
+
+// Scenario timing & load shape
+const SCENARIO_DURATION_SECONDS = parseInt(__ENV.SCENARIO_DURATION_SECONDS || "1200", 10);  // 20m
+const WAIT_BETWEEN_SCENARIOS    = parseInt(__ENV.WAIT_BETWEEN_SCENARIOS    || "300",  10);   // 5m
+const ARRIVAL_RATE              = parseInt(__ENV.ARRIVAL_RATE              || "26",   10);   // ~50 HTTP req/s
+const PRE_ALLOCATED_VUS         = parseInt(__ENV.PRE_ALLOCATED_VUS        || "50",   10);
+const MAX_VUS                   = parseInt(__ENV.MAX_VUS                  || "150",  10);
+const GRACEFUL_STOP             = __ENV.GRACEFUL_STOP || "30s";
+
+// SLO thresholds — align with giantswarm/giantswarm#35147 recommendations.
+const SLO_P95_LATENCY_MS = __ENV.SLO_P95_LATENCY_MS || "500";
+const SLO_P99_LATENCY_MS = __ENV.SLO_P99_LATENCY_MS || "1000";
+const SLO_ERROR_RATE     = __ENV.SLO_ERROR_RATE      || "0.001";  // 0.1%
+const SLO_CHECKS_RATE    = __ENV.SLO_CHECKS_RATE     || "0.95";
 
 function pickEnvoyBaseUrl() {
   const n = Math.floor(Math.random() * ENDPOINTS);
@@ -31,20 +48,14 @@ const FLOWS = [
   { name: "checkout", weight: 1 },
 ];
 
-// Scenario config shared between both controllers
-const SCENARIO_DURATION_SECONDS = 1200; // 20m
-
-// Configurable wait between scenarios (in seconds).
-const WAIT_BETWEEN_SCENARIOS = 300; // 5m
-
 const SCENARIO_CONFIG = {
   executor: "constant-arrival-rate",
-  rate: 26,        // ~1.95 req/iter → ~50 HTTP req/s per controller
+  rate: ARRIVAL_RATE,
   timeUnit: "1s",
   duration: `${SCENARIO_DURATION_SECONDS}s`,
-  preAllocatedVUs: 50,
-  maxVUs: 150,
-  gracefulStop: "30s",
+  preAllocatedVUs: PRE_ALLOCATED_VUS,
+  maxVUs: MAX_VUS,
+  gracefulStop: GRACEFUL_STOP,
 };
 
 // Stagger scenario start times to avoid synchronized request bursts; Envoy starts immediately, nginx starts after Envoy's duration
@@ -64,14 +75,22 @@ export const options = {
     },
   },
   thresholds: {
-    // Per-controller latency thresholds for direct comparison
-    "http_req_duration{scenario:envoy_simulation}": ["p(95)<3000", "p(99)<5000"],
-    "http_req_duration{scenario:nginx_simulation}": ["p(95)<3000", "p(99)<5000"],
-    "http_req_failed{scenario:envoy_simulation}": ["rate<0.05"],
-    "http_req_failed{scenario:nginx_simulation}": ["rate<0.05"],
-    // HTTP/2 check only applies to Envoy; scope it to avoid tainting nginx checks rate
-    "checks{scenario:envoy_simulation}": ["rate>0.90"],
-    "checks{scenario:nginx_simulation}": ["rate>0.90"],
+    // Per-controller latency thresholds aligned with SLO targets from
+    // giantswarm/giantswarm#35147 (default: p95 < 500ms, p99 < 1000ms).
+    "http_req_duration{scenario:envoy_simulation}": [
+      `p(95)<${SLO_P95_LATENCY_MS}`,
+      `p(99)<${SLO_P99_LATENCY_MS}`,
+    ],
+    "http_req_duration{scenario:nginx_simulation}": [
+      `p(95)<${SLO_P95_LATENCY_MS}`,
+      `p(99)<${SLO_P99_LATENCY_MS}`,
+    ],
+    // Error rate: default < 0.1% (issue recommends < 0.1% steady state).
+    "http_req_failed{scenario:envoy_simulation}": [`rate<${SLO_ERROR_RATE}`],
+    "http_req_failed{scenario:nginx_simulation}": [`rate<${SLO_ERROR_RATE}`],
+    // HTTP/2 check applies to Envoy; scoped to avoid tainting nginx checks rate.
+    "checks{scenario:envoy_simulation}": [`rate>${SLO_CHECKS_RATE}`],
+    "checks{scenario:nginx_simulation}": [`rate>${SLO_CHECKS_RATE}`],
   },
 };
 

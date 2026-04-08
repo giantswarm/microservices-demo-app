@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# This kustomization is built as part of the parent (envoy-loadtesting/).
+# Placeholder values are resolved by the parent's replacements.
+# Build from the parent: ./deploy.sh preview
+
+configMapGenerator:
+- name: envoy-load-testing-scenario
+  namespace: K6_NS_PLACEHOLDER
+  files:
+  - test-scenario.js
+  options:
+    disableNameSuffixHash: true
+
+resources:
+- testrun.yaml

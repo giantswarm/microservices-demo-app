@@ -4,7 +4,7 @@
 apiVersion: v2
 
 # Version of the packaged app
-appVersion: 0.0.1
+appVersion: v0.10.5
 
 # Make sure your name DOES NOT end in "app" or "-app".
 name: microservices-demo-app
@@ -20,12 +20,10 @@ home: https://github.com/giantswarm/microservices-demo-app
 icon: https://s.giantswarm.io/app-icons/giantswarm/1/light.svg
 
 sources:
-- https://github.com/some-org/some-repo
-version: 0.0.0-dev
+- https://github.com/giantswarm/microservices-demo-app
+- https://github.com/GoogleCloudPlatform/microservices-demo
+version: 0.1.0
 annotations:
-  # Adapt to 'giantswarm' if this application is not to be deployed by customers
-  io.giantswarm.application.audience: all
-  # Adapt to 'true' if Giant Swarm takes responsibility for this app where it's deplyed
+  io.giantswarm.application.audience: giantswarm
   io.giantswarm.application.managed: "false"
-  # used through .Chart.Annotations . Please replace TEAM-NAME with your team's short name, e. g. 'shield'  for team-shield
-  io.giantswarm.application.team: TEAM-NAME
+  io.giantswarm.application.team: cabbage

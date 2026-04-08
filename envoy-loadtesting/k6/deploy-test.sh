@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-NAMESPACE="gs-k6-operator"
+# Prefer the top-level deploy.sh for full orchestration.
+# This script is a convenience wrapper for k6-only deployment.
 
-kubectl create cm envoy-load-testing-scenario -n "${NAMESPACE}" --from-file=test-scenario.js --dry-run=client -oyaml > configmap.yaml
-kubectl apply -f configmap.yaml
-kubectl apply -f test-run.yaml
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="${SCRIPT_DIR}/.."
+
+exec "${ROOT_DIR}/deploy.sh" k6

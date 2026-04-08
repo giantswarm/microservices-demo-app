@@ -1,0 +1,31 @@
+---
+apiVersion: application.giantswarm.io/v1alpha1
+kind: App
+metadata:
+  labels:
+    app-operator.giantswarm.io/version: 0.0.0
+  name: CLUSTER
+  namespace: org-giantswarm
+spec:
+  catalog: cluster
+  config:
+    configMap:
+      name: ""
+      namespace: ""
+    secret:
+      name: ""
+      namespace: ""
+  kubeConfig:
+    context:
+      name: ""
+    inCluster: true
+    secret:
+      name: ""
+      namespace: ""
+  name: cluster-aws
+  namespace: org-giantswarm
+  userConfig:
+    configMap:
+      name: CLUSTER-userconfig
+      namespace: org-giantswarm
+  version: RELEASE_PLACEHOLDER

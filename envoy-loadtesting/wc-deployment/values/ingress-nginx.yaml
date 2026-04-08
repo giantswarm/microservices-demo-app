@@ -1,0 +1,8 @@
+controller:
+  ingressClassResource:
+    enabled: true
+  service:
+    externalDNS:
+      enabled: true
+  extraArgs:
+    update-status: "true"

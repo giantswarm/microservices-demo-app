@@ -1,0 +1,80 @@
+---
+apiVersion: application.giantswarm.io/v1alpha1
+kind: App
+metadata:
+  finalizers:
+  - operatorkit.giantswarm.io/app-operator-app
+  generation: 1
+  labels:
+    app-operator.giantswarm.io/version: 0.0.0
+    app.kubernetes.io/name: gateway-api-bundle
+  name: CLUSTER-gateway-api-bundle
+  namespace: org-giantswarm
+spec:
+  catalog: giantswarm
+  config:
+    configMap:
+      name: CLUSTER-cluster-values
+      namespace: org-giantswarm
+  kubeConfig:
+    inCluster: true
+  name: gateway-api-bundle
+  namespace: org-giantswarm
+  userConfig:
+    configMap:
+      name: CLUSTER-gateway-api-bundle
+      namespace: org-giantswarm
+  version: 1.15.0
+---
+apiVersion: application.giantswarm.io/v1alpha1
+kind: App
+metadata:
+  name: CLUSTER-aws-lb-controller-bundle
+  namespace: org-giantswarm
+  labels:
+    giantswarm.io/cluster: CLUSTER
+    app-operator.giantswarm.io/version: 0.0.0
+  annotations:
+    app-operator.giantswarm.io/depends-on: CLUSTER-kyverno-crds
+spec:
+  catalog: giantswarm
+  name: aws-lb-controller-bundle
+  namespace: org-giantswarm
+  kubeConfig:
+    inCluster: true
+  userConfig:
+    configMap:
+      name: CLUSTER-aws-lb-controller-bundle-user-values
+      namespace: org-giantswarm
+  version: 5.1.0
+---
+apiVersion: application.giantswarm.io/v1alpha1
+kind: App
+metadata:
+  annotations:
+    app-operator.giantswarm.io/depends-on: CLUSTER-prometheus-operator-crd
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+    giantswarm.io/cluster: CLUSTER
+  name: CLUSTER-ingress-nginx
+  namespace: org-giantswarm
+spec:
+  catalog: giantswarm
+  config:
+    configMap:
+      name: CLUSTER-cluster-values
+      namespace: org-giantswarm
+  kubeConfig:
+    context:
+      name: CLUSTER
+    inCluster: false
+    secret:
+      name: CLUSTER-kubeconfig
+      namespace: org-giantswarm
+  name: ingress-nginx
+  namespace: kube-system
+  userConfig:
+    configMap:
+      name: CLUSTER-ingress-nginx-user-values
+      namespace: org-giantswarm
+  version: 4.2.5
