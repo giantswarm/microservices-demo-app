@@ -35,3 +35,21 @@ varReference:
   kind: TestRun
 - path: spec/runner/env/value
   kind: TestRun
+
+# ---HelmRelease fields (fluxcd.io) ---
+- path: metadata/name
+  kind: HelmRelease
+- path: spec/chartRef/name
+  kind: HelmRelease
+- path: spec/kubeConfig/secretRef/name
+  kind: HelmRelease
+- path: spec/releaseName
+  kind: HelmRelease
+- path: spec/storageNamespace
+  kind: HelmRelease
+- path: spec/targetNamespace
+  kind: HelmRelease
+
+# ---OCIRepository fields (fluxcd.io) ---
+- path: metadata/name
+  kind: OCIRepository
