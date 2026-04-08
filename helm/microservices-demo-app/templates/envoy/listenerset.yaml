@@ -1,0 +1,32 @@
+{{- if .Values.frontend.create }}
+{{- if and .Values.httproute.enabled .Values.httproute.listenerset.enabled }}
+{{ range $i := until (.Values.httproute.namespaces.number | int) }}
+---
+apiVersion: gateway.networking.x-k8s.io/v1alpha1
+kind: XListenerSet
+metadata:
+  name: listeners-{{ $i }}
+  namespace: loadtesting-{{ $i }}
+spec:
+  parentRef:
+    name: giantswarm-default
+    namespace: envoy-gateway-system
+    kind: Gateway
+    group: gateway.networking.k8s.io
+  listeners:
+  - allowedRoutes:
+      namespaces:
+        from: All
+    hostname: '*.loadtesting-{{ $i }}.{{ $.Values.httproute.base }}'
+    name: https
+    port: 443
+    protocol: HTTPS
+    tls:
+      certificateRefs:
+      - group: ""
+        kind: Secret
+        name: gateway-{{ $i }}-https-tls
+      mode: Terminate
+{{- end }}
+{{- end }}
+{{- end }}

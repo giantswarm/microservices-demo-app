@@ -9,10 +9,17 @@ metadata:
   namespace: loadtesting-{{ $i }}
 spec:
   parentRefs:
+  {{- if $.Values.httproute.listenerset.enabled }}
+    - group: gateway.networking.x-k8s.io
+      kind: XListenerSet
+      name: listeners-{{ $i }}
+      namespace: loadtesting-{{ $i }}
+  {{- else }}
     - group: gateway.networking.k8s.io
       kind: Gateway
       name: gateway-{{ $i }}
       namespace: loadtesting-{{ $i }}
+  {{- end }}
   hostnames:
     - "{{ $.Values.httproute.hostname }}.loadtesting-{{ $i }}.{{ $.Values.httproute.base }}"
   rules:
