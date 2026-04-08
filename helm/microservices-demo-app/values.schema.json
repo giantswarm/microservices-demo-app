@@ -478,6 +478,14 @@
                         }
                     }
                 },
+                "listenerset": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        }
+                    }
+                },
                 "namespaces": {
                     "type": "object",
                     "properties": {

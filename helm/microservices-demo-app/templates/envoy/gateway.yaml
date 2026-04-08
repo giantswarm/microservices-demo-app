@@ -1,5 +1,5 @@
 {{- if .Values.frontend.create }}
-{{- if .Values.httproute.enabled }}
+{{- if and .Values.httproute.enabled (not .Values.httproute.listenerset.enabled)}}
 {{ range $i := until (.Values.httproute.namespaces.number | int) }}
 ---
 apiVersion: gateway.networking.k8s.io/v1
@@ -22,13 +22,6 @@ spec:
       giantswarm.io/external-dns: managed
     {{- end }}
   listeners:
-  # - allowedRoutes:
-  #     namespaces:
-  #       from: All
-  #   hostname: '*.loadtesting-{{ $i }}.{{ $.Values.httproute.base }}'                                                                                                                                                                                   
-  #   name: http                                                                                                                                                                                      
-  #   port: 80                                                                                                                                                                                        
-  #   protocol: HTTP
   - allowedRoutes:
       namespaces:
         from: All
