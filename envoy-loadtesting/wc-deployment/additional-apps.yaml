@@ -24,7 +24,7 @@ spec:
     configMap:
       name: CLUSTER-gateway-api-bundle
       namespace: org-giantswarm
-  version: 1.14.0
+  version: 1.15.0
 ---
 apiVersion: application.giantswarm.io/v1alpha1
 kind: App
