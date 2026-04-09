@@ -2,14 +2,15 @@ package basic
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/giantswarm/apptest-framework/v3/pkg/state"
-	"github.com/giantswarm/clustertest/v3/pkg/application"
-	"github.com/giantswarm/clustertest/v3/pkg/wait"
+	"github.com/giantswarm/apptest-framework/v4/pkg/state"
+	"github.com/giantswarm/clustertest/v4/pkg/application"
+	"github.com/giantswarm/clustertest/v4/pkg/wait"
 )
 
 const awsLBControllerBundleValues = `
@@ -82,33 +83,31 @@ controller:
 `
 
 func installDependency(depName, depValues string) {
-	It(fmt.Sprintf("should have %s deployed", depName), func() {
-		org := state.GetCluster().Organization
-		clusterName := state.GetCluster().Name
-		app := application.New(fmt.Sprintf("%s-%s", clusterName, depName), depName).
-			WithCatalog("giantswarm").
-			WithOrganization(*org).
-			WithVersion("latest").
-			WithClusterName(clusterName).
-			WithInCluster(true).
-			WithInstallNamespace(org.GetNamespace()).
-			MustWithValues(depValues, nil)
+	By(fmt.Sprintf("deploying %s", depName))
 
-		err := state.GetFramework().MC().DeployApp(state.GetContext(), *app)
-		Expect(err).NotTo(HaveOccurred())
+	org := state.GetCluster().Organization
 
-		Eventually(wait.IsAppDeployed(state.GetContext(), state.GetFramework().MC(), app.InstallName, org.GetNamespace())).
-			WithTimeout(10 * time.Minute).
-			WithPolling(5 * time.Second).
-			Should(BeTrue())
-	})
-}
+	isBundle := strings.Contains(depName, "bundle")
+	installNamespace := org.GetNamespace()
+	if isBundle == false {
+		installNamespace = "default"
+	}
 
-func installDependencies() {
-	mcName := state.GetFramework().MC().GetClusterName()
 	clusterName := state.GetCluster().Name
+	app := application.New(fmt.Sprintf("%s-%s", clusterName, depName), depName).
+		WithCatalog("giantswarm").
+		WithOrganization(*org).
+		WithVersion("latest").
+		WithClusterName(clusterName).
+		WithInCluster(isBundle).
+		WithInstallNamespace(installNamespace).
+		MustWithValues(depValues, nil)
 
-	installDependency("aws-lb-controller-bundle", fmt.Sprintf(awsLBControllerBundleValues, mcName, clusterName, clusterName))
-	installDependency("gateway-api-bundle", fmt.Sprintf(gatewayApiBundleValues, clusterName))
-	installDependency("ingress-nginx", ingressNginxValues)
+	err := state.GetFramework().MC().DeployApp(state.GetContext(), *app)
+	Expect(err).NotTo(HaveOccurred())
+
+	Eventually(wait.IsAppDeployed(state.GetContext(), state.GetFramework().MC(), app.InstallName, org.GetNamespace())).
+		WithTimeout(10 * time.Minute).
+		WithPolling(5 * time.Second).
+		Should(BeTrue())
 }
