@@ -1,0 +1,13 @@
+ingressController:
+  enabled: true
+  createIngressClass: true
+  watchNamespaces:
+    - loadtesting
+    - kong
+  rbac:
+    gatewayAPI:
+      enabled: false
+proxy:
+  annotations:
+    giantswarm.io/external-dns: managed
+    external-dns.alpha.kubernetes.io/hostname: kong-ingress.${WC}.${BASE_DOMAIN}

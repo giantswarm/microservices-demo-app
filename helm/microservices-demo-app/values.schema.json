@@ -555,6 +555,59 @@
                 }
             }
         },
+        "kong": {
+            "type": "object",
+            "properties": {
+                "annotations": {
+                    "type": "object",
+                    "properties": {
+                        "giantswarm.io/external-dns": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "base": {
+                    "type": "string"
+                },
+                "customCertificate": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        }
+                    }
+                },
+                "customIssuer": {
+                    "type": "object",
+                    "properties": {
+                        "acmeDnsHost": {
+                            "type": "string"
+                        },
+                        "acmeDnsSecretKey": {
+                            "type": "string"
+                        },
+                        "acmeDnsSecretName": {
+                            "type": "string"
+                        },
+                        "enabled": {
+                            "type": "boolean"
+                        }
+                    }
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "ingressCname": {
+                    "type": "string"
+                },
+                "number": {
+                    "type": "integer"
+                }
+            }
+        },
         "loadGenerator": {
             "type": "object",
             "properties": {

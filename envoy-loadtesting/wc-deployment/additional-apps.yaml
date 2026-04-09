@@ -78,3 +78,35 @@ spec:
       name: CLUSTER-ingress-nginx-user-values
       namespace: org-giantswarm
   version: 4.2.5
+---
+apiVersion: application.giantswarm.io/v1alpha1
+kind: App
+metadata:
+  labels:
+    app.kubernetes.io/name: kong-app
+    giantswarm.io/cluster: CLUSTER
+  name: CLUSTER-kong-app
+  namespace: org-giantswarm
+spec:
+  catalog: giantswarm
+  config:
+    configMap:
+      name: CLUSTER-cluster-values
+      namespace: org-giantswarm
+    secret:
+      name: ""
+      namespace: ""
+  kubeConfig:
+    context:
+      name: CLUSTER-kubeconfig
+    inCluster: false
+    secret:
+      name: CLUSTER-kubeconfig
+      namespace: org-giantswarm
+  userConfig:
+    configMap:
+      name: CLUSTER-kong-user-values
+      namespace: org-giantswarm
+  name: kong-app
+  namespace: kong
+  version: 5.2.2

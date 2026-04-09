@@ -1,0 +1,34 @@
+{{- if .Values.frontend.create }}
+{{- if .Values.kong.enabled }}
+{{ range $i := until (.Values.kong.number | int) }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $.Values.frontend.name }}-kong-{{ $i }}
+  namespace: {{ $.Release.Namespace }}
+  {{- with $.Values.kong.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+    external-dns.alpha.kubernetes.io/hostname: "*.{{ $.Values.kong.host}}-{{ $i }}.{{ $.Release.Namespace }}.{{ $.Values.kong.base }}"
+  {{- end }}
+spec:
+  ingressClassName: kong
+  tls:
+    - hosts:
+        - '*.{{ $.Release.Namespace }}.{{ $.Values.kong.base }}'
+      secretName: kong-ingress-wildcard-tls
+  rules:
+    - host: {{ $.Values.kong.host}}-{{ $i }}.{{ $.Release.Namespace }}.{{ $.Values.kong.base }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $.Values.frontend.name }}
+                port:
+                  number: 80
+{{- end }}
+{{- end }}
+{{- end }}
