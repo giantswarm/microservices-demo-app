@@ -31,23 +31,6 @@ apps:
                 https:
                   subdomains:
                     - onlineboutique
-          gatewayClasses:
-            default:
-              envoyProxy:
-                envoyService:
-                  annotations:
-                    external-dns.alpha.kubernetes.io/hostname: gateway.${WC}.${BASE_DOMAIN}
-                    giantswarm.io/external-dns: managed
-                    service.beta.kubernetes.io/aws-load-balancer-attributes: load_balancing.cross_zone.enabled=true
-                    service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold: "2"
-                    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: /healthz
-                    service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: http-80
-                    service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: '*'
-                    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
-                    service.beta.kubernetes.io/aws-load-balancer-target-group-attributes: target_health_state.unhealthy.connection_termination.enabled=false,target_health_state.unhealthy.draining_interval_seconds=200,preserve_client_ip.enabled=false
-                  externalTrafficPolicy: Local
-                  loadBalancerClass: service.k8s.aws/nlb
-                  type: LoadBalancer
   gatewayApiCrds:
     enabled: true
     userConfig:

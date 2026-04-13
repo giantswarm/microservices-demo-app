@@ -24,11 +24,6 @@ images:
 ingress:
   enabled: true
   number: 10
-  customIssuer:
-    enabled: false
-    acmeDnsHost: https://acmedns.example.com
-    acmeDnsSecretName: acme-dns
-    acmeDnsSecretKey: acmedns.json
   customCertificate:
     enabled: true
   annotations: {}
@@ -41,8 +36,6 @@ httproute:
   hostname: onlineboutique
   envoyProxy:
     enabled: false
-  issuer:
-    enabled: true
   listenerset:
     enabled: false
   clienttrafficpolicy:

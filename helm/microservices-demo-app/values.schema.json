@@ -470,14 +470,6 @@
                 "hostname": {
                     "type": "string"
                 },
-                "issuer": {
-                    "type": "object",
-                    "properties": {
-                        "enabled": {
-                            "type": "boolean"
-                        }
-                    }
-                },
                 "listenerset": {
                     "type": "object",
                     "properties": {
@@ -522,23 +514,6 @@
                 "customCertificate": {
                     "type": "object",
                     "properties": {
-                        "enabled": {
-                            "type": "boolean"
-                        }
-                    }
-                },
-                "customIssuer": {
-                    "type": "object",
-                    "properties": {
-                        "acmeDnsHost": {
-                            "type": "string"
-                        },
-                        "acmeDnsSecretKey": {
-                            "type": "string"
-                        },
-                        "acmeDnsSecretName": {
-                            "type": "string"
-                        },
                         "enabled": {
                             "type": "boolean"
                         }

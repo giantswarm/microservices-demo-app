@@ -14,13 +14,8 @@ spec:
   - 'onlineboutique.loadtesting-{{ $i }}.{{ $.Values.httproute.base }}'
   issuerRef:
     group: cert-manager.io
-    {{- if $.Values.httproute.issuer.enabled }}
-    kind: Issuer
-    name: letsencrypt-giantswarm-gateway-{{ $i }}
-    {{- else }}
     kind: ClusterIssuer
-    name: letsencrypt-giantswarm-gateway
-    {{- end }}
+    name: letsencrypt-giantswarm
   secretName: gateway-{{ $i }}-https-tls
 {{- end }}
 {{- end }}
