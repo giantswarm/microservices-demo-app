@@ -82,7 +82,7 @@ controller:
 
 `
 
-func installDependency(depName, depValues string) {
+func deployDependency(depName, depValues string) *application.Application {
 	By(fmt.Sprintf("deploying %s", depName))
 
 	org := state.GetCluster().Organization
@@ -106,6 +106,13 @@ func installDependency(depName, depValues string) {
 	err := state.GetFramework().MC().DeployApp(state.GetContext(), *app)
 	Expect(err).NotTo(HaveOccurred())
 
+	return app
+}
+
+func waitForDependency(app *application.Application) {
+	By(fmt.Sprintf("waiting for %s to be deployed", app.InstallName))
+
+	org := state.GetCluster().Organization
 	Eventually(wait.IsAppDeployed(state.GetContext(), state.GetFramework().MC(), app.InstallName, org.GetNamespace())).
 		WithTimeout(10 * time.Minute).
 		WithPolling(5 * time.Second).
