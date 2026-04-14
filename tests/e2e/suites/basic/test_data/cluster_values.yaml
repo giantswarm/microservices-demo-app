@@ -1,0 +1,4 @@
+global:
+  connectivity:
+    certManager:
+      useDnsChallenges: true
