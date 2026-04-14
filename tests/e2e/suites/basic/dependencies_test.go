@@ -49,8 +49,6 @@ apps:
         values: |
           gateways:
             default:
-              envoyProxy:
-                enabled: false
               allowedListeners:
                 enabled: true
                 namespaces:
