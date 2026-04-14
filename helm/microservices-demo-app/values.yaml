@@ -37,7 +37,7 @@ httproute:
   envoyProxy:
     enabled: false
   listenerset:
-    enabled: false
+    enabled: true
   clienttrafficpolicy:
     enabled: false
   namespaces:
