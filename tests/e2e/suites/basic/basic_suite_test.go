@@ -122,6 +122,21 @@ func TestBasic(t *testing.T) {
 					WithPolling(5 * time.Second).
 					Should(BeTrue())
 			})
+			It("should have ready certificates on the workload cluster", func() {
+				Eventually(func() (bool, error) {
+					return certificateIsReady("loadtesting", "frontend-nginx-wildcard")
+				}).
+					WithTimeout(10 * time.Minute).
+					WithPolling(5 * time.Second).
+					Should(BeTrue())
+
+				Eventually(func() (bool, error) {
+					return certificateIsReady("loadtesting-0", "gateway-0-https")
+				}).
+					WithTimeout(10 * time.Minute).
+					WithPolling(5 * time.Second).
+					Should(BeTrue())
+			})
 			It("should serve traffic from ingress-nginx", func() {
 				httpClient := newHttpClientWithProxy()
 				Eventually(func() (string, error) {

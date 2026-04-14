@@ -16,6 +16,8 @@ import (
 	"github.com/giantswarm/clustertest/v4/pkg/application"
 	"github.com/giantswarm/clustertest/v4/pkg/logger"
 
+	cmv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -161,5 +163,33 @@ func loadBalancerServiceReadyInNamespace(namespace string) (bool, error) {
 	}
 
 	logger.Log("No ready LoadBalancer service found in namespace %s", namespace)
+	return false, nil
+}
+
+func certificateIsReady(namespace, name string) (bool, error) {
+	wcClient, err := state.GetFramework().WC(state.GetCluster().Name)
+	if err != nil {
+		return false, err
+	}
+
+	logger.Log("Checking if certificate %s/%s is ready", namespace, name)
+	cert := cmv1.Certificate{}
+	err = wcClient.Get(state.GetContext(), types.NamespacedName{Name: name, Namespace: namespace}, &cert)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			logger.Log("Certificate %s/%s not found yet", namespace, name)
+			return false, nil
+		}
+		return false, err
+	}
+
+	for _, condition := range cert.Status.Conditions {
+		if condition.Type == cmv1.CertificateConditionReady && condition.Status == cmmeta.ConditionTrue {
+			logger.Log("Certificate %s/%s is ready", namespace, name)
+			return true, nil
+		}
+	}
+
+	logger.Log("Certificate %s/%s not ready yet", namespace, name)
 	return false, nil
 }
