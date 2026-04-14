@@ -15,6 +15,12 @@ import (
 	"github.com/giantswarm/apptest-framework/v4/pkg/state"
 	"github.com/giantswarm/clustertest/v4/pkg/application"
 	"github.com/giantswarm/clustertest/v4/pkg/logger"
+
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func getWorkloadClusterBaseDomain() string {
@@ -68,4 +74,92 @@ func newHttpClientWithProxy() *http.Client {
 		Transport: transport,
 	}
 	return httpClient
+}
+
+func deploymentIsReady(namespace, name string) (bool, error) {
+	wcClient, err := state.GetFramework().WC(state.GetCluster().Name)
+	if err != nil {
+		return false, err
+	}
+
+	logger.Log("Checking if deployment %s/%s is ready", namespace, name)
+	deployment := appsv1.Deployment{}
+	err = wcClient.Get(state.GetContext(), types.NamespacedName{Name: name, Namespace: namespace}, &deployment)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			logger.Log("Deployment %s/%s not found yet", namespace, name)
+			return false, nil
+		}
+		return false, err
+	}
+
+	if deployment.Spec.Replicas == nil {
+		return false, nil
+	}
+
+	desired := *deployment.Spec.Replicas
+	if desired > 0 && deployment.Status.ReadyReplicas == desired && deployment.Status.AvailableReplicas == desired {
+		logger.Log("Deployment %s/%s is ready (%d/%d replicas)", namespace, name, deployment.Status.ReadyReplicas, desired)
+		return true, nil
+	}
+
+	logger.Log("Deployment %s/%s not ready yet (ready: %d/%d, available: %d/%d)",
+		namespace, name, deployment.Status.ReadyReplicas, desired, deployment.Status.AvailableReplicas, desired)
+	return false, nil
+}
+
+func serviceHasLoadBalancer(namespace, name string) (bool, error) {
+	wcClient, err := state.GetFramework().WC(state.GetCluster().Name)
+	if err != nil {
+		return false, err
+	}
+
+	logger.Log("Checking if service %s/%s has load balancer address", namespace, name)
+	svc := corev1.Service{}
+	err = wcClient.Get(state.GetContext(), types.NamespacedName{Name: name, Namespace: namespace}, &svc)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			logger.Log("Service %s/%s not found yet", namespace, name)
+			return false, nil
+		}
+		return false, err
+	}
+
+	if len(svc.Status.LoadBalancer.Ingress) > 0 &&
+		(svc.Status.LoadBalancer.Ingress[0].Hostname != "" || svc.Status.LoadBalancer.Ingress[0].IP != "") {
+		logger.Log("LoadBalancer address found for service %s/%s: %s%s",
+			namespace, name, svc.Status.LoadBalancer.Ingress[0].Hostname, svc.Status.LoadBalancer.Ingress[0].IP)
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func loadBalancerServiceReadyInNamespace(namespace string) (bool, error) {
+	wcClient, err := state.GetFramework().WC(state.GetCluster().Name)
+	if err != nil {
+		return false, err
+	}
+
+	logger.Log("Checking for ready LoadBalancer services in namespace %s", namespace)
+	services := &corev1.ServiceList{}
+	err = wcClient.List(state.GetContext(), services, client.InNamespace(namespace))
+	if err != nil {
+		return false, err
+	}
+
+	for i := range services.Items {
+		svc := &services.Items[i]
+		if svc.Spec.Type == corev1.ServiceTypeLoadBalancer {
+			if len(svc.Status.LoadBalancer.Ingress) > 0 &&
+				(svc.Status.LoadBalancer.Ingress[0].Hostname != "" || svc.Status.LoadBalancer.Ingress[0].IP != "") {
+				logger.Log("LoadBalancer service %s/%s is ready with address: %s%s",
+					namespace, svc.Name, svc.Status.LoadBalancer.Ingress[0].Hostname, svc.Status.LoadBalancer.Ingress[0].IP)
+				return true, nil
+			}
+		}
+	}
+
+	logger.Log("No ready LoadBalancer service found in namespace %s", namespace)
+	return false, nil
 }

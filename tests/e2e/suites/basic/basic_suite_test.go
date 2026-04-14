@@ -56,6 +56,45 @@ func TestBasic(t *testing.T) {
 				waitForDependency(gatewayAPI)
 				waitForDependency(ingressNginx)
 			})
+
+			It("should have ready dependency deployments on the workload cluster", func() {
+				Eventually(func() (bool, error) {
+					return deploymentIsReady("aws-load-balancer-controller", "aws-load-balancer-controller")
+				}).
+					WithTimeout(10 * time.Minute).
+					WithPolling(5 * time.Second).
+					Should(BeTrue())
+
+				Eventually(func() (bool, error) {
+					return deploymentIsReady("envoy-gateway-system", "envoy-gateway")
+				}).
+					WithTimeout(10 * time.Minute).
+					WithPolling(5 * time.Second).
+					Should(BeTrue())
+
+				Eventually(func() (bool, error) {
+					return deploymentIsReady("default", "ingress-nginx-controller")
+				}).
+					WithTimeout(10 * time.Minute).
+					WithPolling(5 * time.Second).
+					Should(BeTrue())
+			})
+
+			It("should have ready LoadBalancer services on the workload cluster", func() {
+				Eventually(func() (bool, error) {
+					return serviceHasLoadBalancer("default", "ingress-nginx-controller")
+				}).
+					WithTimeout(10 * time.Minute).
+					WithPolling(5 * time.Second).
+					Should(BeTrue())
+
+				Eventually(func() (bool, error) {
+					return loadBalancerServiceReadyInNamespace("envoy-gateway-system")
+				}).
+					WithTimeout(10 * time.Minute).
+					WithPolling(5 * time.Second).
+					Should(BeTrue())
+			})
 		}).
 		Tests(func() {
 			var (
