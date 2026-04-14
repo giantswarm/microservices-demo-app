@@ -32,6 +32,11 @@ function pickNginxBaseUrl() {
   return `https://nginx-onlineboutique-${n}.loadtesting.${BASE_DOMAIN}`;
 }
 
+function pickKongBaseUrl() {
+  const n = Math.floor(Math.random() * ENDPOINTS);
+  return `https://kong-onlineboutique-${n}.loadtesting.${BASE_DOMAIN}`;
+}
+
 const PRODUCTS = [
   "OLJCESPC7Z", "66VCHSJNUP", "1YMWWN1N4O", "L9ECAV7KIM",
   "2ZYFJ3GM2N", "0PUK6V6EV0", "LS4PSXUNUM", "9SIQT8TOJO", "6E92ZMYYFZ",
@@ -262,4 +267,8 @@ export function envoyScenario() {
 
 export function nginxScenario() {
   runFlow(pickNginxBaseUrl(), false);
+}
+
+export function kongScenario() {
+  runFlow(pickKongBaseUrl(), false);
 }
