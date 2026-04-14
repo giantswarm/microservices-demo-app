@@ -6,7 +6,7 @@ import { check, group, sleep } from "k6";
 
 // Infrastructure
 const ENDPOINTS  = parseInt(__ENV.ENDPOINTS || "10", 10);
-const BASE_DOMAIN = __ENV.BASE_DOMAIN || "envoyloadtesting.gaws2.gigantic.io";
+const BASE_DOMAIN = __ENV.BASE_DOMAIN;
 
 // Scenario timing & load shape
 const SCENARIO_DURATION_SECONDS = parseInt(__ENV.SCENARIO_DURATION_SECONDS || "1200", 10);  // 20m
