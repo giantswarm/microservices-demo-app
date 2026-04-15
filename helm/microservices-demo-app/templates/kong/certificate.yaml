@@ -1,0 +1,22 @@
+{{- if and .Values.kong.enabled .Values.kong.customCertificate.enabled }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-4"
+  labels:
+    application.giantswarm.io/team: cabbage
+  name: {{ .Values.frontend.name }}-kong-wildcard
+  namespace: {{ .Release.Namespace }}
+spec:
+  dnsNames:
+  - '*.{{ .Release.Namespace }}.{{ .Values.kong.base }}'
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: letsencrypt-giantswarm
+  secretName: kong-ingress-wildcard-tls
+{{- end }}
+

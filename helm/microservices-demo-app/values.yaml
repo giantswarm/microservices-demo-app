@@ -30,6 +30,20 @@ ingress:
   base: envoyloadtesting.gaws2.gigantic.io
   host: nginx-onlineboutique
 
+kong:
+  enabled: true
+  number: 10
+  customCertificate:
+    enabled: true
+  annotations:
+    giantswarm.io/external-dns: managed
+  base: envoyloadtesting.gaws2.gigantic.io
+  host: kong-onlineboutique
+  # CNAME target for kong DNSEndpoints. Annotating the Kong proxy service with this
+  # hostname (via kong-app-values.yaml proxy.annotations) causes external-dns to
+  # create this record pointing at the Kong LB — separate from the nginx ingress CNAME.
+  ingressCname: kong-ingress.envoyloadtesting.gaws2.gigantic.io
+
 httproute:
   enabled: true
   base: envoyloadtesting.gaws2.gigantic.io
