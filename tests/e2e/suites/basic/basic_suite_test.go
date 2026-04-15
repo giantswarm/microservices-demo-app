@@ -8,7 +8,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/giantswarm/apptest-framework/v4/pkg/state"
 	"github.com/giantswarm/apptest-framework/v4/pkg/suite"
@@ -41,6 +43,19 @@ func TestBasic(t *testing.T) {
 				state.SetApplication(
 					state.GetApplication().MustWithValues(fmt.Sprintf(additionalAppConfig, baseDomain, baseDomain, baseDomain, baseDomain), nil),
 				)
+			})
+
+			It("should create the loadtesting namespace", func() {
+				wcClient, err := state.GetFramework().WC(state.GetCluster().Name)
+				Expect(err).NotTo(HaveOccurred())
+
+				ns := &corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "loadtesting",
+					},
+				}
+				err = wcClient.Create(state.GetContext(), ns)
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("should install dependencies", func() {
