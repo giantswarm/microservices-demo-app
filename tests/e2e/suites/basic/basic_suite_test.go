@@ -2,8 +2,6 @@ package basic
 
 import (
 	"fmt"
-	"io"
-	"net/http"
 	"testing"
 	"time"
 
@@ -25,6 +23,9 @@ const (
 const additionalAppConfig = `
 ingress:
   base: %s
+kong:
+  base: %s
+  ingressCname: kong-ingress.%s
 httproute:
   base: %s
 `
@@ -38,72 +39,60 @@ func TestBasic(t *testing.T) {
 			It("should configure app values", func() {
 				baseDomain := getWorkloadClusterBaseDomain()
 				state.SetApplication(
-					state.GetApplication().MustWithValues(fmt.Sprintf(additionalAppConfig, baseDomain, baseDomain), nil),
+					state.GetApplication().MustWithValues(fmt.Sprintf(additionalAppConfig, baseDomain, baseDomain, baseDomain, baseDomain), nil),
 				)
 			})
 
 			It("should install dependencies", func() {
 				mcName := state.GetFramework().MC().GetClusterName()
 				clusterName := state.GetCluster().Name
+				baseDomain := getWorkloadClusterBaseDomain()
 
 				// Deploy all apps
 				ingressNginx := deployDependency("ingress-nginx", ingressNginxValues)
 				awsLB := deployDependency("aws-lb-controller-bundle", fmt.Sprintf(awsLBControllerBundleValues, mcName, clusterName, clusterName))
 				gatewayAPI := deployDependency("gateway-api-bundle", fmt.Sprintf(gatewayApiBundleValues, clusterName))
+				kong := deployDependency("kong-app", fmt.Sprintf(kongAppValues, baseDomain), "kong")
 
 				// Wait for all
 				waitForDependency(awsLB)
 				waitForDependency(gatewayAPI)
 				waitForDependency(ingressNginx)
+				waitForDependency(kong)
 			})
 
 			It("should have ready dependency deployments on the workload cluster", func() {
-				Eventually(func() (bool, error) {
-					return deploymentIsReady("aws-load-balancer-controller", "aws-load-balancer-controller")
-				}).
-					WithTimeout(10 * time.Minute).
-					WithPolling(5 * time.Second).
-					Should(BeTrue())
-
-				Eventually(func() (bool, error) {
-					return deploymentIsReady("envoy-gateway-system", "envoy-gateway")
-				}).
-					WithTimeout(10 * time.Minute).
-					WithPolling(5 * time.Second).
-					Should(BeTrue())
-
-				Eventually(func() (bool, error) {
-					return deploymentIsReady("default", "ingress-nginx-controller")
-				}).
-					WithTimeout(10 * time.Minute).
-					WithPolling(5 * time.Second).
-					Should(BeTrue())
+				for _, ns := range []string{"aws-load-balancer-controller", "envoy-gateway-system", "default", "kong"} {
+					Eventually(func() (bool, error) {
+						return deploymentReadyInNamespace(ns)
+					}).
+						WithTimeout(10 * time.Minute).
+						WithPolling(5 * time.Second).
+						Should(BeTrue())
+				}
 			})
 
 			It("should have ready LoadBalancer services on the workload cluster", func() {
-				Eventually(func() (bool, error) {
-					return serviceHasLoadBalancer("default", "ingress-nginx-controller")
-				}).
-					WithTimeout(10 * time.Minute).
-					WithPolling(5 * time.Second).
-					Should(BeTrue())
-
-				Eventually(func() (bool, error) {
-					return loadBalancerServiceReadyInNamespace("envoy-gateway-system")
-				}).
-					WithTimeout(10 * time.Minute).
-					WithPolling(5 * time.Second).
-					Should(BeTrue())
+				for _, ns := range []string{"default", "envoy-gateway-system", "kong"} {
+					Eventually(func() (bool, error) {
+						return loadBalancerServiceReadyInNamespace(ns)
+					}).
+						WithTimeout(10 * time.Minute).
+						WithPolling(5 * time.Second).
+						Should(BeTrue())
+				}
 			})
 		}).
 		Tests(func() {
 			var (
 				nginxUrl string
 				envoyUrl string
+				kongUrl  string
 			)
 			BeforeEach(func() {
 				nginxUrl = fmt.Sprintf("https://nginx-onlineboutique-0.loadtesting.%s", getWorkloadClusterBaseDomain())
 				envoyUrl = fmt.Sprintf("https://onlineboutique.loadtesting-0.%s", getWorkloadClusterBaseDomain())
+				kongUrl = fmt.Sprintf("https://kong-onlineboutique-0.loadtesting.%s", getWorkloadClusterBaseDomain())
 			})
 			It("should have deployed the test app", func() {
 				Eventually(func() (bool, error) {
@@ -136,60 +125,22 @@ func TestBasic(t *testing.T) {
 					WithTimeout(10 * time.Minute).
 					WithPolling(5 * time.Second).
 					Should(BeTrue())
+
+				Eventually(func() (bool, error) {
+					return certificateIsReady("loadtesting", "frontend-kong-wildcard")
+				}).
+					WithTimeout(10 * time.Minute).
+					WithPolling(5 * time.Second).
+					Should(BeTrue())
 			})
 			It("should serve traffic from ingress-nginx", func() {
-				httpClient := newHttpClientWithProxy()
-				Eventually(func() (string, error) {
-					logger.Log("Trying to get a successful response from %s", nginxUrl)
-					resp, err := httpClient.Get(nginxUrl)
-					if err != nil {
-						return "", err
-					}
-					defer resp.Body.Close()
-
-					if resp.StatusCode != http.StatusOK {
-						logger.Log("Was expecting status code '%d' but actually got '%d'", http.StatusOK, resp.StatusCode)
-						return "", err
-					}
-
-					bodyBytes, err := io.ReadAll(resp.Body)
-					if err != nil {
-						logger.Log("Was not expecting the response body to be empty")
-						return "", err
-					}
-
-					return string(bodyBytes), nil
-				}).
-					WithTimeout(15 * time.Minute).
-					WithPolling(5 * time.Second).
-					Should(ContainSubstring("Online Boutique"))
+				expectEndpointServesTraffic(nginxUrl)
 			})
 			It("should serve traffic from envoy gateway", func() {
-				httpClient := newHttpClientWithProxy()
-				Eventually(func() (string, error) {
-					logger.Log("Trying to get a successful response from %s", envoyUrl)
-					resp, err := httpClient.Get(envoyUrl)
-					if err != nil {
-						return "", err
-					}
-					defer resp.Body.Close()
-
-					if resp.StatusCode != http.StatusOK {
-						logger.Log("Was expecting status code '%d' but actually got '%d'", http.StatusOK, resp.StatusCode)
-						return "", err
-					}
-
-					bodyBytes, err := io.ReadAll(resp.Body)
-					if err != nil {
-						logger.Log("Was not expecting the response body to be empty")
-						return "", err
-					}
-
-					return string(bodyBytes), nil
-				}).
-					WithTimeout(15 * time.Minute).
-					WithPolling(5 * time.Second).
-					Should(ContainSubstring("Online Boutique"))
+				expectEndpointServesTraffic(envoyUrl)
+			})
+			It("should serve traffic from kong", func() {
+				expectEndpointServesTraffic(kongUrl)
 			})
 		}).
 		Run(t, "Basic Test")

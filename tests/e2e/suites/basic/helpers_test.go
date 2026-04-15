@@ -3,6 +3,7 @@ package basic
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -78,62 +79,32 @@ func newHttpClientWithProxy() *http.Client {
 	return httpClient
 }
 
-func deploymentIsReady(namespace, name string) (bool, error) {
+func deploymentReadyInNamespace(namespace string) (bool, error) {
 	wcClient, err := state.GetFramework().WC(state.GetCluster().Name)
 	if err != nil {
 		return false, err
 	}
 
-	logger.Log("Checking if deployment %s/%s is ready", namespace, name)
-	deployment := appsv1.Deployment{}
-	err = wcClient.Get(state.GetContext(), types.NamespacedName{Name: name, Namespace: namespace}, &deployment)
+	logger.Log("Checking for ready deployments in namespace %s", namespace)
+	deployments := &appsv1.DeploymentList{}
+	err = wcClient.List(state.GetContext(), deployments, client.InNamespace(namespace))
 	if err != nil {
-		if errors.IsNotFound(err) {
-			logger.Log("Deployment %s/%s not found yet", namespace, name)
-			return false, nil
+		return false, err
+	}
+
+	for i := range deployments.Items {
+		dep := &deployments.Items[i]
+		if dep.Spec.Replicas == nil {
+			continue
 		}
-		return false, err
-	}
-
-	if deployment.Spec.Replicas == nil {
-		return false, nil
-	}
-
-	desired := *deployment.Spec.Replicas
-	if desired > 0 && deployment.Status.ReadyReplicas == desired && deployment.Status.AvailableReplicas == desired {
-		logger.Log("Deployment %s/%s is ready (%d/%d replicas)", namespace, name, deployment.Status.ReadyReplicas, desired)
-		return true, nil
-	}
-
-	logger.Log("Deployment %s/%s not ready yet (ready: %d/%d, available: %d/%d)",
-		namespace, name, deployment.Status.ReadyReplicas, desired, deployment.Status.AvailableReplicas, desired)
-	return false, nil
-}
-
-func serviceHasLoadBalancer(namespace, name string) (bool, error) {
-	wcClient, err := state.GetFramework().WC(state.GetCluster().Name)
-	if err != nil {
-		return false, err
-	}
-
-	logger.Log("Checking if service %s/%s has load balancer address", namespace, name)
-	svc := corev1.Service{}
-	err = wcClient.Get(state.GetContext(), types.NamespacedName{Name: name, Namespace: namespace}, &svc)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			logger.Log("Service %s/%s not found yet", namespace, name)
-			return false, nil
+		desired := *dep.Spec.Replicas
+		if desired > 0 && dep.Status.ReadyReplicas == desired && dep.Status.AvailableReplicas == desired {
+			logger.Log("Deployment %s/%s is ready (%d/%d replicas)", namespace, dep.Name, dep.Status.ReadyReplicas, desired)
+			return true, nil
 		}
-		return false, err
 	}
 
-	if len(svc.Status.LoadBalancer.Ingress) > 0 &&
-		(svc.Status.LoadBalancer.Ingress[0].Hostname != "" || svc.Status.LoadBalancer.Ingress[0].IP != "") {
-		logger.Log("LoadBalancer address found for service %s/%s: %s%s",
-			namespace, name, svc.Status.LoadBalancer.Ingress[0].Hostname, svc.Status.LoadBalancer.Ingress[0].IP)
-		return true, nil
-	}
-
+	logger.Log("No ready deployment found in namespace %s", namespace)
 	return false, nil
 }
 
@@ -192,4 +163,32 @@ func certificateIsReady(namespace, name string) (bool, error) {
 
 	logger.Log("Certificate %s/%s not ready yet", namespace, name)
 	return false, nil
+}
+
+func expectEndpointServesTraffic(endpoint string) {
+	httpClient := newHttpClientWithProxy()
+	Eventually(func() (string, error) {
+		logger.Log("Trying to get a successful response from %s", endpoint)
+		resp, err := httpClient.Get(endpoint)
+		if err != nil {
+			return "", err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			logger.Log("Was expecting status code '%d' but actually got '%d'", http.StatusOK, resp.StatusCode)
+			return "", err
+		}
+
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			logger.Log("Was not expecting the response body to be empty")
+			return "", err
+		}
+
+		return string(bodyBytes), nil
+	}).
+		WithTimeout(15 * time.Minute).
+		WithPolling(5 * time.Second).
+		Should(ContainSubstring("Online Boutique"))
 }

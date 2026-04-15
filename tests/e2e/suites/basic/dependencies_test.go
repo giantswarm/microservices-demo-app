@@ -73,6 +73,22 @@ apps:
 clusterID: %s
 `
 
+const kongAppValues = `
+ingressController:
+  enabled: true
+  createIngressClass: true
+  watchNamespaces:
+    - loadtesting
+    - kong
+  rbac:
+    gatewayAPI:
+      enabled: false
+proxy:
+  annotations:
+    giantswarm.io/external-dns: managed
+    external-dns.alpha.kubernetes.io/hostname: kong-ingress.%s
+`
+
 const ingressNginxValues = `
 controller:
   extraArgs:
@@ -80,15 +96,18 @@ controller:
 
 `
 
-func deployDependency(depName, depValues string) *application.Application {
+func deployDependency(depName, depValues string, installNs ...string) *application.Application {
 	By(fmt.Sprintf("deploying %s", depName))
 
 	org := state.GetCluster().Organization
 
 	isBundle := strings.Contains(depName, "bundle")
 	installNamespace := org.GetNamespace()
-	if isBundle == false {
+	if !isBundle {
 		installNamespace = "default"
+	}
+	if len(installNs) > 0 && installNs[0] != "" {
+		installNamespace = installNs[0]
 	}
 
 	clusterName := state.GetCluster().Name
