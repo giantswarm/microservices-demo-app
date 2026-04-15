@@ -43,6 +43,15 @@ configMapGenerator:
     labels:
       app-operator.giantswarm.io/watching: "true"
 
+- name: CLUSTER-kong-user-values
+  namespace: org-giantswarm
+  files:
+  - values.yaml=values/kong.yaml
+  options:
+    disableNameSuffixHash: true
+    labels:
+      app-operator.giantswarm.io/watching: "true"
+
 # --- App CRs -------------------------------------------------
 resources:
 - cluster.yaml
