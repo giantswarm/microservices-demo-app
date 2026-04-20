@@ -2,3 +2,7 @@ global:
   connectivity:
     certManager:
       useDnsChallenges: true
+  nodePools:
+    def00:
+      minSize: 5
+      maxSize: 5

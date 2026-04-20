@@ -22,6 +22,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -163,6 +165,32 @@ func certificateIsReady(namespace, name string) (bool, error) {
 
 	logger.Log("Certificate %s/%s not ready yet", namespace, name)
 	return false, nil
+}
+
+func crdExists(name string) (bool, error) {
+	wcClient, err := state.GetFramework().WC(state.GetCluster().Name)
+	if err != nil {
+		return false, err
+	}
+
+	logger.Log("Checking if CRD %s exists", name)
+	crd := &unstructured.Unstructured{}
+	crd.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "apiextensions.k8s.io",
+		Version: "v1",
+		Kind:    "CustomResourceDefinition",
+	})
+	err = wcClient.Get(state.GetContext(), client.ObjectKey{Name: name}, crd)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			logger.Log("CRD %s not found yet", name)
+			return false, nil
+		}
+		return false, err
+	}
+
+	logger.Log("CRD %s exists", name)
+	return true, nil
 }
 
 func expectEndpointServesTraffic(endpoint string) {

@@ -8,9 +8,15 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	applicationv1alpha1 "github.com/giantswarm/apiextensions-application/api/v1alpha1"
 	"github.com/giantswarm/apptest-framework/v4/pkg/state"
 	"github.com/giantswarm/clustertest/v4/pkg/application"
+	"github.com/giantswarm/clustertest/v4/pkg/logger"
 	"github.com/giantswarm/clustertest/v4/pkg/wait"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const awsLBControllerBundleValues = `
@@ -87,6 +93,9 @@ proxy:
   annotations:
     giantswarm.io/external-dns: managed
     external-dns.alpha.kubernetes.io/hostname: kong-ingress.%s
+`
+
+const kongExtraObjectsValues = `
 extraObjects:
   - apiVersion: configuration.konghq.com/v1
     kind: KongClusterPlugin
@@ -149,4 +158,44 @@ func waitForDependency(app *application.Application) {
 		WithTimeout(10 * time.Minute).
 		WithPolling(5 * time.Second).
 		Should(BeTrue())
+}
+
+// addExtraConfigToApp creates a ConfigMap with the given values and adds it
+// to the App CR's spec.extraConfigs list via a JSON merge patch.
+func addExtraConfigToApp(appName, configMapName, values string) {
+	ctx := state.GetContext()
+	mc := state.GetFramework().MC()
+	org := state.GetCluster().Organization
+	namespace := org.GetNamespace()
+
+	logger.Log("Creating extra config ConfigMap %s/%s for App %s", namespace, configMapName, appName)
+
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      configMapName,
+			Namespace: namespace,
+		},
+		Data: map[string]string{
+			"values": values,
+		},
+	}
+	err := mc.Create(ctx, cm)
+	Expect(err).NotTo(HaveOccurred(), "failed to create extra config ConfigMap %s/%s", namespace, configMapName)
+
+	// Read the current App CR to preserve existing extraConfigs
+	appCR := &applicationv1alpha1.App{}
+	err = mc.Get(ctx, types.NamespacedName{Name: appName, Namespace: namespace}, appCR)
+	Expect(err).NotTo(HaveOccurred(), "failed to get App CR %s/%s", namespace, appName)
+
+	appCR.Spec.ExtraConfigs = append(appCR.Spec.ExtraConfigs, applicationv1alpha1.AppExtraConfig{
+		Kind:      "configMap",
+		Name:      configMapName,
+		Namespace: namespace,
+		Priority:  25,
+	})
+
+	err = mc.Update(ctx, appCR)
+	Expect(err).NotTo(HaveOccurred(), "failed to update App CR %s/%s with extraConfigs", namespace, appName)
+
+	logger.Log("Added extra config %s to App %s/%s", configMapName, namespace, appName)
 }

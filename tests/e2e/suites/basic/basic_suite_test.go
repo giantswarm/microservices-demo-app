@@ -2,6 +2,7 @@ package basic
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -97,6 +98,24 @@ func TestBasic(t *testing.T) {
 						Should(BeTrue())
 				}
 			})
+
+			It("should configure kong prometheus plugin", func() {
+				By("Waiting for KongClusterPlugin CRD to be registered")
+				Eventually(func() (bool, error) {
+					return crdExists("kongclusterplugins.configuration.konghq.com")
+				}).
+					WithTimeout(5 * time.Minute).
+					WithPolling(10 * time.Second).
+					Should(BeTrue())
+
+				By("Adding extraObjects config to kong-app via spec.extraConfigs")
+				clusterName := state.GetCluster().Name
+				addExtraConfigToApp(
+					fmt.Sprintf("%s-kong-app", clusterName),
+					fmt.Sprintf("%s-kong-extra-objects", clusterName),
+					kongExtraObjectsValues,
+				)
+			})
 		}).
 		Tests(func() {
 			var (
@@ -157,6 +176,49 @@ func TestBasic(t *testing.T) {
 			It("should serve traffic from kong", func() {
 				expectEndpointServesTraffic(kongUrl)
 			})
+			It("should run k6 load tests successfully", func() {
+				k6Namespace := getK6Namespace()
+				baseDomain := getWorkloadClusterBaseDomain()
+				testRunName := fmt.Sprintf("e2e-load-test-%s", state.GetCluster().Name)
+				configMapName := fmt.Sprintf("e2e-load-test-scenario-%s", state.GetCluster().Name)
+
+				// Clean up any stale resources from a previous interrupted run
+				cleanupK6Resources(testRunName, configMapName, k6Namespace)
+
+				By("Creating test scenario ConfigMap on k6 cluster")
+				cm := buildScenarioConfigMap(configMapName, k6Namespace)
+				err := getK6Client().Create(state.GetContext(), cm)
+				Expect(err).NotTo(HaveOccurred())
+
+				By("Creating TestRun on k6 cluster")
+				testRun := buildTestRunUnstructured(testRunName, k6Namespace, configMapName, baseDomain)
+				err = getK6Client().Create(state.GetContext(), testRun)
+				Expect(err).NotTo(HaveOccurred())
+
+				By("Waiting for TestRun to complete")
+				Eventually(func() (string, error) {
+					return getTestRunStage(testRunName, k6Namespace)
+				}).
+					WithTimeout(70 * time.Minute).
+					WithPolling(30 * time.Second).
+					Should(BeElementOf("finished", "error"))
+
+				By("Asserting TestRun succeeded")
+				assertTestRunSuccess(testRunName, k6Namespace)
+
+				By("Cleaning up k6 resources")
+				cleanupK6Resources(testRunName, configMapName, k6Namespace)
+			})
+		}).
+		AfterSuite(func() {
+			kubeconfigPath := getK6KubeconfigPath()
+			if _, err := os.Stat(kubeconfigPath); os.IsNotExist(err) {
+				return
+			}
+			k6Namespace := getK6Namespace()
+			testRunName := fmt.Sprintf("e2e-load-test-%s", state.GetCluster().Name)
+			configMapName := fmt.Sprintf("e2e-load-test-scenario-%s", state.GetCluster().Name)
+			cleanupK6Resources(testRunName, configMapName, k6Namespace)
 		}).
 		Run(t, "Basic Test")
 }

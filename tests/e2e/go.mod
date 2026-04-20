@@ -4,6 +4,7 @@ go 1.25.7
 
 require (
 	github.com/cert-manager/cert-manager v1.20.2
+	github.com/giantswarm/apiextensions-application v0.6.2
 	github.com/giantswarm/apptest-framework/v4 v4.1.0
 	github.com/giantswarm/clustertest/v4 v4.2.0
 	github.com/onsi/ginkgo/v2 v2.28.1
@@ -47,7 +48,6 @@ require (
 	github.com/fluxcd/source-controller/api v1.8.2 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.1 // indirect
-	github.com/giantswarm/apiextensions-application v0.6.2 // indirect
 	github.com/giantswarm/cluster-standup-teardown/v5 v5.1.0 // indirect
 	github.com/giantswarm/k8smetadata v0.26.0 // indirect
 	github.com/giantswarm/kubectl-gs/v2 v2.57.0 // indirect
