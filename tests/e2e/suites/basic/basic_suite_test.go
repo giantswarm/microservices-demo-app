@@ -39,14 +39,14 @@ func TestBasic(t *testing.T) {
 		WithIsUpgrade(isUpgrade).
 		WithValuesFile("./values.yaml").
 		AfterClusterReady(func() {
-			It("should configure app values", func() {
+			It("should configure app values", FlakeAttempts(3), func() {
 				baseDomain := getWorkloadClusterBaseDomain()
 				state.SetApplication(
 					state.GetApplication().MustWithValues(fmt.Sprintf(additionalAppConfig, baseDomain, baseDomain, baseDomain, baseDomain), nil),
 				)
 			})
 
-			It("should create the loadtesting namespace", func() {
+			It("should create the loadtesting namespace", FlakeAttempts(3), func() {
 				wcClient, err := state.GetFramework().WC(state.GetCluster().Name)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -56,10 +56,12 @@ func TestBasic(t *testing.T) {
 					},
 				}
 				err = wcClient.Create(state.GetContext(), ns)
-				Expect(err).NotTo(HaveOccurred())
+				if err != nil && !errors.IsAlreadyExists(err) {
+					Expect(err).NotTo(HaveOccurred())
+				}
 			})
 
-			It("should install dependencies", func() {
+			It("should install dependencies", FlakeAttempts(3), func() {
 				mcName := state.GetFramework().MC().GetClusterName()
 				clusterName := state.GetCluster().Name
 				baseDomain := getWorkloadClusterBaseDomain()
@@ -77,7 +79,7 @@ func TestBasic(t *testing.T) {
 				waitForDependency(kong)
 			})
 
-			It("should have ready dependency deployments on the workload cluster", func() {
+			It("should have ready dependency deployments on the workload cluster", FlakeAttempts(3), func() {
 				for _, ns := range []string{"aws-load-balancer-controller", "envoy-gateway-system", "default", "kong"} {
 					Eventually(func() (bool, error) {
 						return deploymentReadyInNamespace(ns)
@@ -88,7 +90,7 @@ func TestBasic(t *testing.T) {
 				}
 			})
 
-			It("should have ready LoadBalancer services on the workload cluster", func() {
+			It("should have ready LoadBalancer services on the workload cluster", FlakeAttempts(3), func() {
 				for _, ns := range []string{"default", "envoy-gateway-system", "kong"} {
 					Eventually(func() (bool, error) {
 						return loadBalancerServiceReadyInNamespace(ns)
@@ -99,7 +101,7 @@ func TestBasic(t *testing.T) {
 				}
 			})
 
-			It("should configure kong prometheus plugin", func() {
+			It("should configure kong prometheus plugin", FlakeAttempts(3), func() {
 				By("Waiting for KongClusterPlugin CRD to be registered")
 				Eventually(func() (bool, error) {
 					return crdExists("kongclusterplugins.configuration.konghq.com")

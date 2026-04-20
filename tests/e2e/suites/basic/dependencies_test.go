@@ -15,6 +15,7 @@ import (
 	"github.com/giantswarm/clustertest/v4/pkg/wait"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -161,14 +162,14 @@ func waitForDependency(app *application.Application) {
 }
 
 // addExtraConfigToApp creates a ConfigMap with the given values and adds it
-// to the App CR's spec.extraConfigs list via a JSON merge patch.
+// to the App CR's spec.extraConfigs list. Idempotent — safe to call on retry.
 func addExtraConfigToApp(appName, configMapName, values string) {
 	ctx := state.GetContext()
 	mc := state.GetFramework().MC()
 	org := state.GetCluster().Organization
 	namespace := org.GetNamespace()
 
-	logger.Log("Creating extra config ConfigMap %s/%s for App %s", namespace, configMapName, appName)
+	logger.Log("Ensuring extra config ConfigMap %s/%s for App %s", namespace, configMapName, appName)
 
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -180,12 +181,22 @@ func addExtraConfigToApp(appName, configMapName, values string) {
 		},
 	}
 	err := mc.Create(ctx, cm)
-	Expect(err).NotTo(HaveOccurred(), "failed to create extra config ConfigMap %s/%s", namespace, configMapName)
+	if err != nil && !errors.IsAlreadyExists(err) {
+		Expect(err).NotTo(HaveOccurred(), "failed to create extra config ConfigMap %s/%s", namespace, configMapName)
+	}
 
 	// Read the current App CR to preserve existing extraConfigs
 	appCR := &applicationv1alpha1.App{}
 	err = mc.Get(ctx, types.NamespacedName{Name: appName, Namespace: namespace}, appCR)
 	Expect(err).NotTo(HaveOccurred(), "failed to get App CR %s/%s", namespace, appName)
+
+	// Check if the extra config is already present
+	for _, ec := range appCR.Spec.ExtraConfigs {
+		if ec.Name == configMapName && ec.Namespace == namespace {
+			logger.Log("Extra config %s already present on App %s/%s", configMapName, namespace, appName)
+			return
+		}
+	}
 
 	appCR.Spec.ExtraConfigs = append(appCR.Spec.ExtraConfigs, applicationv1alpha1.AppExtraConfig{
 		Kind:      "configMap",
