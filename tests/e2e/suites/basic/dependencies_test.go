@@ -87,6 +87,21 @@ proxy:
   annotations:
     giantswarm.io/external-dns: managed
     external-dns.alpha.kubernetes.io/hostname: kong-ingress.%s
+extraObjects:
+  - apiVersion: configuration.konghq.com/v1
+    kind: KongClusterPlugin
+    metadata:
+      name: prometheus
+      annotations:
+        kubernetes.io/ingress.class: kong
+      labels:
+        global: "true"
+    plugin: prometheus
+    config:
+      status_code_metrics: true
+      latency_metrics: true
+      bandwidth_metrics: true
+      upstream_health_metrics: true
 `
 
 const ingressNginxValues = `
