@@ -66,6 +66,8 @@ const SCENARIO_CONFIG = {
 // Stagger scenario start times to avoid synchronized request bursts; Envoy starts immediately, nginx starts after Envoy's duration
 const nginxStartTime = `${SCENARIO_DURATION_SECONDS + WAIT_BETWEEN_SCENARIOS}s`;
 
+const kongStartTime = `${SCENARIO_DURATION_SECONDS + WAIT_BETWEEN_SCENARIOS + parseInt(nginxStartTime)}s`;
+
 export const options = {
   scenarios: {
     envoy_simulation: {
@@ -77,6 +79,11 @@ export const options = {
       ...SCENARIO_CONFIG,
       exec: "nginxScenario",
       startTime: nginxStartTime,
+    },
+    kong_simulation: {
+      ...SCENARIO_CONFIG,
+      exec: "kongScenario",
+      startTime: kongStartTime,
     },
   },
   thresholds: {
@@ -90,12 +97,18 @@ export const options = {
       `p(95)<${SLO_P95_LATENCY_MS}`,
       `p(99)<${SLO_P99_LATENCY_MS}`,
     ],
+    "http_req_duration{scenario:kong_simulation}": [
+      `p(95)<${SLO_P95_LATENCY_MS}`,
+      `p(99)<${SLO_P99_LATENCY_MS}`,
+    ],
     // Error rate: default < 0.1% (issue recommends < 0.1% steady state).
     "http_req_failed{scenario:envoy_simulation}": [`rate<${SLO_ERROR_RATE}`],
     "http_req_failed{scenario:nginx_simulation}": [`rate<${SLO_ERROR_RATE}`],
+    "http_req_failed{scenario:kong_simulation}": [`rate<${SLO_ERROR_RATE}`],
     // HTTP/2 check applies to Envoy; scoped to avoid tainting nginx checks rate.
     "checks{scenario:envoy_simulation}": [`rate>${SLO_CHECKS_RATE}`],
     "checks{scenario:nginx_simulation}": [`rate>${SLO_CHECKS_RATE}`],
+    "checks{scenario:kong_simulation}": [`rate>${SLO_CHECKS_RATE}`],
   },
 };
 
