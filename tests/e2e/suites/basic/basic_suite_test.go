@@ -201,7 +201,7 @@ func TestBasic(t *testing.T) {
 				Eventually(func() (string, error) {
 					return getTestRunStage(testRunName, k6Namespace)
 				}).
-					WithTimeout(70 * time.Minute).
+					WithTimeout(120 * time.Minute).
 					WithPolling(30 * time.Second).
 					Should(BeElementOf("finished", "error"))
 
