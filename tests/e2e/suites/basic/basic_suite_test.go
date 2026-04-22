@@ -218,15 +218,23 @@ func TestBasic(t *testing.T) {
 				Expect(err).NotTo(HaveOccurred())
 
 				By("Waiting for TestRun to complete")
+				var lastStage string
 				Eventually(func() (string, error) {
-					return getTestRunStage(testRunName, k6Namespace)
+					stage, err := getTestRunStage(testRunName, k6Namespace)
+					if err != nil {
+						return "", err
+					}
+					if stage != "" && stage != testRunGone {
+						lastStage = stage
+					}
+					return stage, nil
 				}).
 					WithTimeout(120 * time.Minute).
 					WithPolling(30 * time.Second).
-					Should(BeElementOf("finished", "error"))
+					Should(BeElementOf("finished", "error", testRunGone))
 
 				By("Asserting TestRun succeeded")
-				assertTestRunSuccess(testRunName, k6Namespace)
+				assertTestRunSuccess(testRunName, k6Namespace, lastStage)
 
 				By("Cleaning up k6 resources")
 				cleanupK6Resources(testRunName, configMapName, k6Namespace)

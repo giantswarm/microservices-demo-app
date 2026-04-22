@@ -13,11 +13,17 @@ import (
 	"github.com/giantswarm/clustertest/v4/pkg/logger"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	cr "sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+// testRunGone is the sentinel stage returned by getTestRunStage when the
+// TestRun CR no longer exists (typically because k6-operator cleaned it up
+// after completion with cleanup: post).
+const testRunGone = "gone"
 
 const defaultK6KubeconfigPath = "/etc/k6-kubeconfig"
 
@@ -184,6 +190,10 @@ func getTestRunStage(name, namespace string) (string, error) {
 
 	err := getK6Client().Get(context.Background(), cr.ObjectKey{Name: name, Namespace: namespace}, obj)
 	if err != nil {
+		if errors.IsNotFound(err) {
+			logger.Log("TestRun %s/%s no longer exists (cleaned up by operator)", namespace, name)
+			return testRunGone, nil
+		}
 		return "", err
 	}
 
@@ -197,7 +207,11 @@ func getTestRunStage(name, namespace string) (string, error) {
 	return stage, nil
 }
 
-func assertTestRunSuccess(name, namespace string) {
+// assertTestRunSuccess verifies the TestRun finished successfully. If the
+// TestRun CR has been deleted (operator cleanup after completion), it falls
+// back to fallbackStage — the last stage observed during polling — so we can
+// still distinguish a clean finish from a deletion after an error.
+func assertTestRunSuccess(name, namespace, fallbackStage string) {
 	obj := &unstructured.Unstructured{}
 	obj.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "k6.io",
@@ -206,7 +220,14 @@ func assertTestRunSuccess(name, namespace string) {
 	})
 
 	err := getK6Client().Get(context.Background(), cr.ObjectKey{Name: name, Namespace: namespace}, obj)
-	Expect(err).NotTo(HaveOccurred(), "failed to get TestRun for assertion")
+	if err != nil {
+		if errors.IsNotFound(err) {
+			logger.Log("TestRun %s/%s was cleaned up; asserting on last observed stage: %q", namespace, name, fallbackStage)
+			Expect(fallbackStage).To(Equal("finished"), "TestRun did not finish successfully before cleanup, last observed stage: %q", fallbackStage)
+			return
+		}
+		Expect(err).NotTo(HaveOccurred(), "failed to get TestRun for assertion")
+	}
 
 	stage, _, _ := unstructured.NestedString(obj.Object, "status", "stage")
 	Expect(stage).To(Equal("finished"), "TestRun did not finish successfully, stage: %s", stage)
