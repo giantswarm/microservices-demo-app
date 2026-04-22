@@ -9,8 +9,8 @@ const ENDPOINTS  = parseInt(__ENV.ENDPOINTS || "10", 10);
 const BASE_DOMAIN = __ENV.BASE_DOMAIN;
 
 // Scenario timing & load shape
-const SCENARIO_DURATION_SECONDS = parseInt(__ENV.SCENARIO_DURATION_SECONDS || "1200", 10);  // 20m
-const WAIT_BETWEEN_SCENARIOS    = parseInt(__ENV.WAIT_BETWEEN_SCENARIOS    || "300",  10);   // 5m
+const SCENARIO_DURATION_SECONDS = parseInt(__ENV.SCENARIO_DURATION_SECONDS || "60", 10);
+const WAIT_BETWEEN_SCENARIOS    = parseInt(__ENV.WAIT_BETWEEN_SCENARIOS    || "10",  10);
 const ARRIVAL_RATE              = parseInt(__ENV.ARRIVAL_RATE              || "26",   10);   // ~50 HTTP req/s
 const PRE_ALLOCATED_VUS         = parseInt(__ENV.PRE_ALLOCATED_VUS        || "50",   10);
 const MAX_VUS                   = parseInt(__ENV.MAX_VUS                  || "150",  10);
@@ -252,7 +252,7 @@ function runFlow(baseUrl, checkHttp2) {
   const flow = weightedRandom(FLOWS);
   switch (flow) {
     case "home":
-      browseHome(baseUrl, checkHttp2); 
+      browseHome(baseUrl, checkHttp2);
       break;
     case "browseProduct":
       browseProduct(baseUrl, checkHttp2);
