@@ -9,12 +9,11 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/giantswarm/apptest-framework/v4/pkg/state"
 	"github.com/giantswarm/apptest-framework/v4/pkg/suite"
+	"github.com/giantswarm/clustertest/v4/pkg/application"
 	"github.com/giantswarm/clustertest/v4/pkg/logger"
 	"github.com/giantswarm/clustertest/v4/pkg/wait"
 )
@@ -39,6 +38,13 @@ func TestBasic(t *testing.T) {
 		WithIsUpgrade(isUpgrade).
 		WithValuesFile("./values.yaml").
 		AfterClusterReady(func() {
+			var (
+				awsLBApp        *application.Application
+				ingressNginxApp *application.Application
+				gatewayAPIApp   *application.Application
+				kongApp         *application.Application
+			)
+
 			It("should configure app values", FlakeAttempts(3), func() {
 				baseDomain := getWorkloadClusterBaseDomain()
 				state.SetApplication(
@@ -47,36 +53,50 @@ func TestBasic(t *testing.T) {
 			})
 
 			It("should create the loadtesting namespace", FlakeAttempts(3), func() {
-				wcClient, err := state.GetFramework().WC(state.GetCluster().Name)
-				Expect(err).NotTo(HaveOccurred())
+				createWorkloadClusterNamespace("loadtesting")
+			})
 
-				ns := &corev1.Namespace{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "loadtesting",
-					},
-				}
-				err = wcClient.Create(state.GetContext(), ns)
-				if err != nil && !errors.IsAlreadyExists(err) {
-					Expect(err).NotTo(HaveOccurred())
+			It("should install aws-load-balancer-controller and ingress-nginx", FlakeAttempts(3), func() {
+				mcName := state.GetFramework().MC().GetClusterName()
+				clusterName := state.GetCluster().Name
+
+				awsLBApp = deployDependency("aws-lb-controller-bundle", fmt.Sprintf(awsLBControllerBundleValues, mcName, clusterName, clusterName))
+				ingressNginxApp = deployDependency("ingress-nginx", ingressNginxValues)
+			})
+
+			It("should wait for aws-load-balancer-controller to be ready", FlakeAttempts(3), func() {
+				waitForDependency(awsLBApp)
+			})
+
+			It("should install gateway-api-bundle", FlakeAttempts(3), func() {
+				clusterName := state.GetCluster().Name
+				gatewayAPIApp = deployDependency("gateway-api-bundle", fmt.Sprintf(gatewayApiBundleValues, clusterName))
+				waitForDependency(gatewayAPIApp)
+			})
+
+			It("should have gateway api CRDs registered", FlakeAttempts(3), func() {
+				for _, crd := range []string{
+					"gateways.gateway.networking.k8s.io",
+					"httproutes.gateway.networking.k8s.io",
+					"xlistenersets.gateway.networking.x-k8s.io",
+				} {
+					Eventually(func() (bool, error) {
+						return crdExists(crd)
+					}).
+						WithTimeout(5 * time.Minute).
+						WithPolling(10 * time.Second).
+						Should(BeTrue())
 				}
 			})
 
-			It("should install dependencies", FlakeAttempts(3), func() {
-				mcName := state.GetFramework().MC().GetClusterName()
-				clusterName := state.GetCluster().Name
+			It("should wait for ingress-nginx to be ready", FlakeAttempts(3), func() {
+				waitForDependency(ingressNginxApp)
+			})
+
+			It("should install kong-app", FlakeAttempts(3), func() {
 				baseDomain := getWorkloadClusterBaseDomain()
-
-				// Deploy all apps
-				ingressNginx := deployDependency("ingress-nginx", ingressNginxValues)
-				awsLB := deployDependency("aws-lb-controller-bundle", fmt.Sprintf(awsLBControllerBundleValues, mcName, clusterName, clusterName))
-				gatewayAPI := deployDependency("gateway-api-bundle", fmt.Sprintf(gatewayApiBundleValues, clusterName))
-				kong := deployDependency("kong-app", fmt.Sprintf(kongAppValues, baseDomain), "kong")
-
-				// Wait for all
-				waitForDependency(awsLB)
-				waitForDependency(gatewayAPI)
-				waitForDependency(ingressNginx)
-				waitForDependency(kong)
+				kongApp = deployDependency("kong-app", fmt.Sprintf(kongAppValues, baseDomain), "kong")
+				waitForDependency(kongApp)
 			})
 
 			It("should have ready dependency deployments on the workload cluster", FlakeAttempts(3), func() {

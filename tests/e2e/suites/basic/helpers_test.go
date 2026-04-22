@@ -23,10 +23,26 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+func createWorkloadClusterNamespace(name string) {
+	wcClient, err := state.GetFramework().WC(state.GetCluster().Name)
+	Expect(err).NotTo(HaveOccurred())
+
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+	err = wcClient.Create(state.GetContext(), ns)
+	if err != nil && !errors.IsAlreadyExists(err) {
+		Expect(err).NotTo(HaveOccurred())
+	}
+}
 
 func getWorkloadClusterBaseDomain() string {
 	values := &application.ClusterValues{}
