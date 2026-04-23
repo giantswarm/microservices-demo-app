@@ -38,10 +38,18 @@ func createWorkloadClusterNamespace(name string) {
 			Name: name,
 		},
 	}
-	err = wcClient.Create(state.GetContext(), ns)
-	if err != nil && !errors.IsAlreadyExists(err) {
-		Expect(err).NotTo(HaveOccurred())
-	}
+
+	Eventually(func() error {
+		err := wcClient.Create(state.GetContext(), ns)
+		if err == nil || errors.IsAlreadyExists(err) {
+			return nil
+		}
+		logger.Log("Create namespace %s failed, will retry: %v", name, err)
+		return err
+	}).
+		WithTimeout(5 * time.Minute).
+		WithPolling(5 * time.Second).
+		Should(Succeed())
 }
 
 func getWorkloadClusterBaseDomain() string {

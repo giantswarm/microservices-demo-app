@@ -144,7 +144,6 @@ func buildTestRunUnstructured(name, namespace, configMapName, baseDomain string)
 			"spec": map[string]any{
 				"parallelism": int64(4),
 				"quiet":       "false",
-				"cleanup":     "post",
 				"separate":    false,
 				"script": map[string]any{
 					"configMap": map[string]any{
