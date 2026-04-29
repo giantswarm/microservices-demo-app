@@ -20,6 +20,32 @@ log()  { echo -e "${GREEN}[$(date +%H:%M:%S)]${NC} $*"; }
 warn() { echo -e "${YELLOW}[$(date +%H:%M:%S)]${NC} $*"; }
 err()  { echo -e "${RED}[$(date +%H:%M:%S)]${NC} $*" >&2; }
 
+# Resolve INGRESS_CONTROLLER → per-controller artefacts. Drives:
+#   - which App CR + values ConfigMap are kept in the rendered manifests
+#   - which Helm values toggle is set on the demo-app HelmRelease
+#   - which k6 scenario runs alongside envoy_simulation
+case "${INGRESS_CONTROLLER:-}" in
+  nginx)
+    INGRESS_NGINX_ENABLED=true
+    KONG_ENABLED=false
+    INGRESS_APP_NAME="${WC}-ingress-nginx"
+    INGRESS_HOST="nginx-onlineboutique"
+    EXCLUDE_NAME_PATTERN="kong"
+    ;;
+  kong)
+    INGRESS_NGINX_ENABLED=false
+    KONG_ENABLED=true
+    INGRESS_APP_NAME="${WC}-kong-app"
+    INGRESS_HOST="kong-onlineboutique"
+    EXCLUDE_NAME_PATTERN="ingress-nginx"
+    ;;
+  *)
+    err "INGRESS_CONTROLLER must be 'nginx' or 'kong' (got: '${INGRESS_CONTROLLER:-}'). Set it in config.env."
+    exit 1
+    ;;
+esac
+export INGRESS_NGINX_ENABLED KONG_ENABLED
+
 # Shorthand kubectl wrappers per cluster
 kmc()  { kubectl --context="${MC_CONTEXT}" "$@"; }
 kk6()  { kubectl --context="${K6_CONTEXT}" "$@"; }
@@ -63,12 +89,24 @@ render_manifests() {
   envsubst '${WC} ${BASE_DOMAIN}' \
     < "${SCRIPT_DIR}/wc-deployment/values/gateway-api-bundle.yaml" \
     > "${tmpdir}/wc-deployment/values/gateway-api-bundle.yaml"
+  envsubst '${INGRESS_NGINX_ENABLED} ${KONG_ENABLED}' \
+    < "${SCRIPT_DIR}/wc-deployment/loadtesting-app.yaml" \
+    > "${tmpdir}/wc-deployment/loadtesting-app.yaml"
 
   kubectl kustomize "${tmpdir}"
   rm -rf "${tmpdir}"
 }
 
 render_mc_manifests() {
+  render_manifests \
+    | yq 'select(.metadata.namespace == "org-giantswarm")' \
+    | yq 'select(.metadata.name | test("'"${EXCLUDE_NAME_PATTERN}"'") | not)'
+}
+
+# Unfiltered MC manifests — used by teardown so we always clean up both ingress
+# controllers regardless of the current INGRESS_CONTROLLER setting (otherwise
+# switching the var between deploy and teardown would orphan the unused App).
+render_mc_manifests_all() {
   render_manifests | yq 'select(.metadata.namespace == "org-giantswarm")'
 }
 
@@ -106,9 +144,9 @@ cmd_wc() {
   kmc wait --for=jsonpath='{.status.release.status}'=deployed -n org-giantswarm app "${WC}"-gateway-api-config --timeout=1200s
   log "gateway-api CRDs and config deployed."
 
-  log "Checking ingress-nginx deployment status..."
-  kmc wait --for=jsonpath='{.status.release.status}'=deployed -n org-giantswarm app "${WC}"-ingress-nginx --timeout=600s
-  log "ingress-nginx is deployed."
+  log "Checking ${INGRESS_CONTROLLER} (${INGRESS_APP_NAME}) deployment status..."
+  kmc wait --for=jsonpath='{.status.release.status}'=deployed -n org-giantswarm app "${INGRESS_APP_NAME}" --timeout=600s
+  log "${INGRESS_CONTROLLER} is deployed."
 }
 
 cmd_app() {
@@ -116,18 +154,18 @@ cmd_app() {
   kmc wait --for=condition=Ready -n org-giantswarm helmrelease "${WC}"-microservices-demo-app --timeout=600s
   log "microservices-demo-app HelmRelease is ready."
 
-  log "Checking demo app nginx ingress endpoint..."
-  local nginx_url="https://nginx-onlineboutique-0.${WC}-microservices-demo-app.${WC}.${BASE_DOMAIN}/"
+  log "Checking demo app ${INGRESS_CONTROLLER} ingress endpoint..."
+  local ingress_url="https://${INGRESS_HOST}-0.${WC}-microservices-demo-app.${WC}.${BASE_DOMAIN}/"
   local attempts=0
-  until curl -sf --max-time 10 "${nginx_url}" | grep -q "</html>"; do
+  until curl -sf --max-time 10 "${ingress_url}" | grep -q "</html>"; do
     ((attempts++))
     if [[ ${attempts} -ge 20 ]]; then
-      err "Nginx endpoint ${nginx_url} not reachable after ~60 min. Aborting."
+      err "${INGRESS_CONTROLLER} endpoint ${ingress_url} not reachable after ~60 min. Aborting."
       exit 1
     fi
     sleep 180
   done
-  log "Demo app is reachable via nginx at ${nginx_url}"
+  log "Demo app is reachable via ${INGRESS_CONTROLLER} at ${ingress_url}"
 
   log "Checking demo app envoy gateway endpoint..."
   local envoy_url="https://onlineboutique.loadtesting-0.${WC}.${BASE_DOMAIN}/"
@@ -188,7 +226,7 @@ cmd_teardown() {
   render_k6_manifests | kk6 delete -f - --ignore-not-found 2>/dev/null || true
 
   log "Deleting WC resources (${MC_CONTEXT})..."
-  render_mc_manifests | kmc delete -f - --ignore-not-found
+  render_mc_manifests_all | kmc delete -f - --ignore-not-found
 
   log "Teardown complete."
 }

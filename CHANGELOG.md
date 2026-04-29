@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Update kong setup to make it work with Gateway API.
+- Update `envoy-loadtesting` so that kong and nginx are not deployed at the same time on the workload cluster. Only one of those is selected by the user.
 
 ## [0.2.1] - 2026-04-16
 

@@ -61,6 +61,8 @@ spec:
         value: ENDPOINTS_PLACEHOLDER
       - name: BASE_DOMAIN
         value: CLUSTER.DOMAIN_PLACEHOLDER
+      - name: INGRESS_CONTROLLER
+        value: INGRESS_CONTROLLER_PLACEHOLDER
       # Scenario timing & load shape
       - name: SCENARIO_DURATION_SECONDS
         value: SCENARIO_DURATION_SECONDS_PLACEHOLDER
