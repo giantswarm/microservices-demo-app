@@ -276,6 +276,20 @@ replacements:
     options:
       delimiter: '-'
       index: 0
+  # --- kong-app App ---
+  - select:
+      kind: App
+      name: CLUSTER-kong-app
+    fieldPaths:
+    - metadata.name
+    - metadata.labels.[giantswarm.io/cluster]
+    - spec.config.configMap.name
+    - spec.kubeConfig.context.name
+    - spec.kubeConfig.secret.name
+    - spec.userConfig.configMap.name
+    options:
+      delimiter: '-'
+      index: 0
   # --- microservices-demo-app OCIRepository ---
   - select:
       kind: OCIRepository
@@ -327,6 +341,14 @@ replacements:
   - select:
       kind: ConfigMap
       name: CLUSTER-ingress-nginx-user-values
+    fieldPaths:
+    - metadata.name
+    options:
+      delimiter: '-'
+      index: 0
+  - select:
+      kind: ConfigMap
+      name: CLUSTER-kong-user-values
     fieldPaths:
     - metadata.name
     options:
