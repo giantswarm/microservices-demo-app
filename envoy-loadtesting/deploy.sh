@@ -155,7 +155,11 @@ cmd_app() {
   log "microservices-demo-app HelmRelease is ready."
 
   log "Checking demo app ${INGRESS_CONTROLLER} ingress endpoint..."
-  local ingress_url="https://${INGRESS_HOST}-0.${WC}-microservices-demo-app.${WC}.${BASE_DOMAIN}/"
+  local ingress_url
+  case "${INGRESS_CONTROLLER}" in
+    nginx) ingress_url="https://${INGRESS_HOST}-0.${WC}.${BASE_DOMAIN}/" ;;
+    kong)  ingress_url="https://${INGRESS_HOST}.${WC}.${BASE_DOMAIN}/" ;;
+  esac
   local attempts=0
   until curl -sf --max-time 10 "${ingress_url}" | grep -q "</html>"; do
     ((attempts++))
