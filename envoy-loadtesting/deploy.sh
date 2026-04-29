@@ -20,27 +20,27 @@ log()  { echo -e "${GREEN}[$(date +%H:%M:%S)]${NC} $*"; }
 warn() { echo -e "${YELLOW}[$(date +%H:%M:%S)]${NC} $*"; }
 err()  { echo -e "${RED}[$(date +%H:%M:%S)]${NC} $*" >&2; }
 
-# Resolve INGRESS_CONTROLLER → per-controller artefacts. Drives:
+# Resolve PROXY_CONTROLLER → per-controller artefacts. Drives:
 #   - which App CR + values ConfigMap are kept in the rendered manifests
 #   - which Helm values toggle is set on the demo-app HelmRelease
 #   - which k6 scenario runs alongside envoy_simulation
-case "${INGRESS_CONTROLLER:-}" in
+case "${PROXY_CONTROLLER:-}" in
   nginx)
     INGRESS_NGINX_ENABLED=true
     KONG_ENABLED=false
-    INGRESS_APP_NAME="${WC}-ingress-nginx"
-    INGRESS_HOST="nginx-onlineboutique"
+    REVERSE_PROXY_APP_NAME="${WC}-ingress-nginx"
+    REVERSE_PROXY_HOST="nginx-onlineboutique"
     EXCLUDE_NAME_PATTERN="kong"
     ;;
   kong)
     INGRESS_NGINX_ENABLED=false
     KONG_ENABLED=true
-    INGRESS_APP_NAME="${WC}-kong-app"
-    INGRESS_HOST="kong-onlineboutique"
+    REVERSE_PROXY_APP_NAME="${WC}-kong-app"
+    REVERSE_PROXY_HOST="kong-onlineboutique"
     EXCLUDE_NAME_PATTERN="ingress-nginx"
     ;;
   *)
-    err "INGRESS_CONTROLLER must be 'nginx' or 'kong' (got: '${INGRESS_CONTROLLER:-}'). Set it in config.env."
+    err "PROXY_CONTROLLER must be 'nginx' or 'kong' (got: '${PROXY_CONTROLLER:-}'). Set it in config.env."
     exit 1
     ;;
 esac
@@ -104,7 +104,7 @@ render_mc_manifests() {
 }
 
 # Unfiltered MC manifests — used by teardown so we always clean up both ingress
-# controllers regardless of the current INGRESS_CONTROLLER setting (otherwise
+# controllers regardless of the current PROXY_CONTROLLER setting (otherwise
 # switching the var between deploy and teardown would orphan the unused App).
 render_mc_manifests_all() {
   render_manifests | yq 'select(.metadata.namespace == "org-giantswarm")'
@@ -144,9 +144,9 @@ cmd_wc() {
   kmc wait --for=jsonpath='{.status.release.status}'=deployed -n org-giantswarm app "${WC}"-gateway-api-config --timeout=1200s
   log "gateway-api CRDs and config deployed."
 
-  log "Checking ${INGRESS_CONTROLLER} (${INGRESS_APP_NAME}) deployment status..."
-  kmc wait --for=jsonpath='{.status.release.status}'=deployed -n org-giantswarm app "${INGRESS_APP_NAME}" --timeout=600s
-  log "${INGRESS_CONTROLLER} is deployed."
+  log "Checking ${PROXY_CONTROLLER} (${REVERSE_PROXY_APP_NAME}) deployment status..."
+  kmc wait --for=jsonpath='{.status.release.status}'=deployed -n org-giantswarm app "${REVERSE_PROXY_APP_NAME}" --timeout=600s
+  log "${PROXY_CONTROLLER} is deployed."
 }
 
 cmd_app() {
@@ -154,22 +154,22 @@ cmd_app() {
   kmc wait --for=condition=Ready -n org-giantswarm helmrelease "${WC}"-microservices-demo-app --timeout=600s
   log "microservices-demo-app HelmRelease is ready."
 
-  log "Checking demo app ${INGRESS_CONTROLLER} ingress endpoint..."
+  log "Checking demo app ${PROXY_CONTROLLER} ingress endpoint..."
   local ingress_url
-  case "${INGRESS_CONTROLLER}" in
-    nginx) ingress_url="https://${INGRESS_HOST}-0.${WC}.${BASE_DOMAIN}/" ;;
-    kong)  ingress_url="https://${INGRESS_HOST}.${WC}.${BASE_DOMAIN}/" ;;
+  case "${PROXY_CONTROLLER}" in
+    nginx) ingress_url="https://${REVERSE_PROXY_HOST}-0.${WC}.${BASE_DOMAIN}/" ;;
+    kong)  ingress_url="https://${REVERSE_PROXY_HOST}.${WC}.${BASE_DOMAIN}/" ;;
   esac
   local attempts=0
   until curl -sf --max-time 10 "${ingress_url}" | grep -q "</html>"; do
     ((attempts++))
     if [[ ${attempts} -ge 20 ]]; then
-      err "${INGRESS_CONTROLLER} endpoint ${ingress_url} not reachable after ~60 min. Aborting."
+      err "${PROXY_CONTROLLER} endpoint ${ingress_url} not reachable after ~60 min. Aborting."
       exit 1
     fi
     sleep 180
   done
-  log "Demo app is reachable via ${INGRESS_CONTROLLER} at ${ingress_url}"
+  log "Demo app is reachable via ${PROXY_CONTROLLER} at ${ingress_url}"
 
   log "Checking demo app envoy gateway endpoint..."
   local envoy_url="https://onlineboutique.loadtesting-0.${WC}.${BASE_DOMAIN}/"

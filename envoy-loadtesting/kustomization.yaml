@@ -99,17 +99,17 @@ replacements:
     fieldPaths:
     - spec.runner.env.[name=ENDPOINTS].value
 
-# INGRESS_CONTROLLER -> TestRun env (selects nginx_simulation or kong_simulation)
+# PROXY_CONTROLLER -> TestRun env (selects nginx_simulation or kong_simulation)
 - source:
     kind: ConfigMap
     name: cluster-variables
-    fieldPath: data.INGRESS_CONTROLLER
+    fieldPath: data.PROXY_CONTROLLER
   targets:
   - select:
       kind: TestRun
       name: envoy-gateway-load-test
     fieldPaths:
-    - spec.runner.env.[name=INGRESS_CONTROLLER].value
+    - spec.runner.env.[name=PROXY_CONTROLLER].value
 
 # SCENARIO_DURATION_SECONDS -> TestRun env
 - source:
