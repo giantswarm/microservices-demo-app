@@ -1,6 +1,5 @@
 {{- if .Values.frontend.create }}
 {{- if .Values.kong.enabled }}
-{{ range $i := until (.Values.kong.number | int) }}
 ---
 apiVersion: externaldns.k8s.io/v1alpha1
 kind: DNSEndpoint
@@ -12,15 +11,14 @@ metadata:
     "helm.sh/hook-delete-policy": before-hook-creation
   labels:
     application.giantswarm.io/team: cabbage
-  name: {{ $.Values.frontend.name }}-kong-{{ $i }}
-  namespace: {{ $.Release.Namespace }}
+  name: {{ .Values.frontend.name }}-kong
+  namespace: {{ .Release.Namespace }}
 spec:
   endpoints:
-  - dnsName: {{ $.Values.kong.host }}-{{ $i }}.{{ $.Release.Namespace }}.{{ $.Values.kong.base }}
+  - dnsName: {{ .Values.kong.host }}.{{ .Release.Namespace }}.{{ .Values.kong.base }}
     recordTTL: 300
     recordType: CNAME
     targets:
-    - {{ $.Values.kong.ingressCname }}
-{{- end }}
+    - {{ .Values.kong.ingressCname }}
 {{- end }}
 {{- end }}
