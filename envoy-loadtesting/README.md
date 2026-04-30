@@ -1,6 +1,6 @@
 # Envoy Gateway Load Testing
 
-End-to-end infrastructure for comparing Envoy Gateway against a chosen ingress
+End-to-end infrastructure for comparing Envoy Gateway against a chosen reverse proxy
 controller (Nginx Ingress *or* Kong) on Giant Swarm workload clusters, using
 Google's Online Boutique as the target workload.
 
