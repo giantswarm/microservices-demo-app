@@ -12,7 +12,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   dnsNames:
-  - '*.{{ .Release.Namespace }}.{{ .Values.kong.base }}'
+  - '{{ .Values.kong.host }}.{{ .Release.Namespace }}.{{ .Values.kong.base }}'
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer
