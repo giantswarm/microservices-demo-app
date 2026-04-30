@@ -34,3 +34,8 @@ spec:
   releaseName: CLUSTER-microservices-demo-app
   storageNamespace: loadtesting
   targetNamespace: loadtesting
+  values:
+    ingress:
+      enabled: ${INGRESS_NGINX_ENABLED}
+    kong:
+      enabled: ${KONG_ENABLED}

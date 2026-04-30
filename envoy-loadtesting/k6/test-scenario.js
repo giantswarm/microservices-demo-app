@@ -7,6 +7,10 @@ import { check, group, sleep } from "k6";
 // Infrastructure
 const ENDPOINTS  = parseInt(__ENV.ENDPOINTS || "10", 10);
 const BASE_DOMAIN = __ENV.BASE_DOMAIN;
+const PROXY_CONTROLLER = (__ENV.PROXY_CONTROLLER || "nginx").toLowerCase();
+if (PROXY_CONTROLLER !== "nginx" && PROXY_CONTROLLER !== "kong") {
+  throw new Error(`PROXY_CONTROLLER must be 'nginx' or 'kong' (got: '${PROXY_CONTROLLER}')`);
+}
 
 // Scenario timing & load shape
 const SCENARIO_DURATION_SECONDS = parseInt(__ENV.SCENARIO_DURATION_SECONDS || "1200", 10);  // 20m
@@ -63,10 +67,11 @@ const SCENARIO_CONFIG = {
   gracefulStop: GRACEFUL_STOP,
 };
 
-// Stagger scenario start times to avoid synchronized request bursts; Envoy starts immediately, nginx starts after Envoy's duration
-const nginxStartTime = `${SCENARIO_DURATION_SECONDS + WAIT_BETWEEN_SCENARIOS}s`;
-
-const kongStartTime = `${SCENARIO_DURATION_SECONDS + WAIT_BETWEEN_SCENARIOS + parseInt(nginxStartTime)}s`;
+// Envoy starts immediately; the chosen reverse proxy controller starts after Envoy's
+// duration + the wait window so we don't synchronize request bursts.
+const reverseProxyStartTime = `${SCENARIO_DURATION_SECONDS + WAIT_BETWEEN_SCENARIOS}s`;
+const reverseProxyScenarioName = `${PROXY_CONTROLLER}_simulation`;
+const reverseProxyExec = PROXY_CONTROLLER === "kong" ? "kongScenario" : "nginxScenario";
 
 export const options = {
   scenarios: {
@@ -75,15 +80,10 @@ export const options = {
       exec: "envoyScenario",
       startTime: "0s",
     },
-    nginx_simulation: {
+    [reverseProxyScenarioName]: {
       ...SCENARIO_CONFIG,
-      exec: "nginxScenario",
-      startTime: nginxStartTime,
-    },
-    kong_simulation: {
-      ...SCENARIO_CONFIG,
-      exec: "kongScenario",
-      startTime: kongStartTime,
+      exec: reverseProxyExec,
+      startTime: reverseProxyStartTime,
     },
   },
   thresholds: {
@@ -93,22 +93,17 @@ export const options = {
       `p(95)<${SLO_P95_LATENCY_MS}`,
       `p(99)<${SLO_P99_LATENCY_MS}`,
     ],
-    "http_req_duration{scenario:nginx_simulation}": [
-      `p(95)<${SLO_P95_LATENCY_MS}`,
-      `p(99)<${SLO_P99_LATENCY_MS}`,
-    ],
-    "http_req_duration{scenario:kong_simulation}": [
+    [`http_req_duration{scenario:${reverseProxyScenarioName}}`]: [
       `p(95)<${SLO_P95_LATENCY_MS}`,
       `p(99)<${SLO_P99_LATENCY_MS}`,
     ],
     // Error rate: default < 0.1% (issue recommends < 0.1% steady state).
     "http_req_failed{scenario:envoy_simulation}": [`rate<${SLO_ERROR_RATE}`],
-    "http_req_failed{scenario:nginx_simulation}": [`rate<${SLO_ERROR_RATE}`],
-    "http_req_failed{scenario:kong_simulation}": [`rate<${SLO_ERROR_RATE}`],
-    // HTTP/2 check applies to Envoy; scoped to avoid tainting nginx checks rate.
+    [`http_req_failed{scenario:${reverseProxyScenarioName}}`]: [`rate<${SLO_ERROR_RATE}`],
+    // HTTP/2 check applies to Envoy; scoped per-scenario so the ingress
+    // controller's HTTP/1.1 traffic doesn't taint the checks rate.
     "checks{scenario:envoy_simulation}": [`rate>${SLO_CHECKS_RATE}`],
-    "checks{scenario:nginx_simulation}": [`rate>${SLO_CHECKS_RATE}`],
-    "checks{scenario:kong_simulation}": [`rate>${SLO_CHECKS_RATE}`],
+    [`checks{scenario:${reverseProxyScenarioName}}`]: [`rate>${SLO_CHECKS_RATE}`],
   },
 };
 
