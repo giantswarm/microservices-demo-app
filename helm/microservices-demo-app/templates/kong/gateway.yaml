@@ -1,0 +1,48 @@
+{{- if .Values.frontend.create }}
+{{- if and .Values.kong.enabled .Values.kong.gatewayAPI.enabled }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  labels:
+    application.giantswarm.io/team: cabbage
+  annotations:
+    konghq.com/gatewayclass-unmanaged: "true"
+  name: kong
+spec:
+  controllerName: konghq.com/kic-gateway-controller
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  labels:
+    application.giantswarm.io/team: cabbage
+  annotations:
+    konghq.com/gateway-unmanaged: "kong/kong-app-kong-app-proxy"
+  name: kong
+  namespace: {{ .Release.Namespace }}
+spec:
+  gatewayClassName: kong
+  listeners:
+  - allowedRoutes:
+      namespaces:
+        from: All
+    hostname: '*.{{ .Release.Namespace }}.{{ .Values.kong.base }}'                                                                                                                                                                                   
+    name: http                                                                                                                                                                                      
+    port: 80                                                                                                                                                                                        
+    protocol: HTTP
+  - allowedRoutes:
+      namespaces:
+        from: All
+    hostname: '*.{{ .Release.Namespace }}.{{ .Values.kong.base }}'
+    name: https
+    port: 443
+    protocol: HTTPS
+    tls:
+      certificateRefs:
+      - group: ""
+        kind: Secret
+        name: kong-ingress-wildcard-tls
+      mode: Terminate
+{{- end }}
+{{- end }}

@@ -33,6 +33,8 @@ ingress:
 kong:
   enabled: true
   number: 10
+  gatewayAPI:
+    enabled: true
   customCertificate:
     enabled: true
   annotations:

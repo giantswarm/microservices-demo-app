@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Update kong setup to make it work with Gateway API.
+- Add kong app and user values configmap to kustomization.
+
 ## [0.2.1] - 2026-04-16
 
 ### Fixed
