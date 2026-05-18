@@ -210,17 +210,17 @@ replacements:
     fieldPaths:
     - spec.runner.env.[name=K6_PROMETHEUS_RW_SERVER_URL].value
 
-# PROMETHEUS_RW_HEADERS_X_SCOPE_ORGID -> TestRun env
+# K6_PROMETHEUS_RW_HTTP_HEADERS -> TestRun env
 - source:
     kind: ConfigMap
     name: cluster-variables
-    fieldPath: data.PROMETHEUS_RW_HEADERS_X_SCOPE_ORGID
+    fieldPath: data.K6_PROMETHEUS_RW_HTTP_HEADERS
   targets:
   - select:
       kind: TestRun
       name: envoy-gateway-load-test
     fieldPaths:
-    - spec.runner.env.[name=K6_PROMETHEUS_RW_HEADERS_X_SCOPE_ORGID].value
+    - spec.runner.env.[name=K6_PROMETHEUS_RW_HTTP_HEADERS].value
 
 # PROMETHEUS_RW_PUSH_INTERVAL -> TestRun env
 - source:

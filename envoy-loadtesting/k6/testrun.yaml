@@ -72,8 +72,8 @@ spec:
       # Prometheus Remote Write credentials & config
       - name: K6_PROMETHEUS_RW_SERVER_URL
         value: PROMETHEUS_RW_URL_PLACEHOLDER
-      - name: K6_PROMETHEUS_RW_HEADERS_X_SCOPE_ORGID
-        value: PROMETHEUS_RW_HEADERS_X_SCOPE_ORGID_PLACEHOLDER
+      - name: K6_PROMETHEUS_RW_HTTP_HEADERS
+        value: PROMETHEUS_RW_HTTP_HEADERS_PLACEHOLDER
       - name: K6_PROMETHEUS_RW_PUSH_INTERVAL
         value: PROMETHEUS_RW_PUSH_INTERVAL_PLACEHOLDER
       # Scenario timing & load shape
