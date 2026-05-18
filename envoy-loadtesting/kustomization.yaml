@@ -98,6 +98,9 @@ replacements:
       name: envoy-gateway-load-test
     fieldPaths:
     - spec.arguments
+    options:
+      delimiter: '='
+      index: 1
 
 # ENDPOINTS -> TestRun env
 - source:
