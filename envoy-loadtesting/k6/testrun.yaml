@@ -14,6 +14,7 @@ spec:
       name: envoy-load-testing-scenario
       file: test-scenario.js
   separate: false
+  arguments: -o experimental-prometheus-rw --tag testid=TESTID_PLACEHOLDER
   initializer:
     image: K6_IMAGE_PLACEHOLDER
     containerSecurityContext:
@@ -63,6 +64,13 @@ spec:
         value: CLUSTER.DOMAIN_PLACEHOLDER
       - name: PROXY_CONTROLLER
         value: PROXY_CONTROLLER_PLACEHOLDER
+      # Prometheus Remote Write credentials & config
+      - name: K6_PROMETHEUS_RW_SERVER_URL
+        value: PROMETHEUS_RW_URL_PLACEHOLDER
+      - name: K6_PROMETHEUS_RW_HEADERS_X_SCOPE_ORGID
+        value: PROMETHEUS_RW_HEADERS_X_SCOPE_ORGID_PLACEHOLDER
+      - name: K6_PROMETHEUS_RW_PUSH_INTERVAL
+        value: PROMETHEUS_RW_PUSH_INTERVAL_PLACEHOLDER
       # Scenario timing & load shape
       - name: SCENARIO_DURATION_SECONDS
         value: SCENARIO_DURATION_SECONDS_PLACEHOLDER
