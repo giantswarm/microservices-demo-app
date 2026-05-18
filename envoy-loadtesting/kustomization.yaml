@@ -87,6 +87,21 @@ replacements:
     - spec.initializer.image
     - spec.runner.image
 
+# TEST_ID -> TestRun tag
+- source:
+    kind: ConfigMap
+    name: cluster-variables
+    fieldPath: data.TEST_ID
+  targets:
+  - select:
+      kind: TestRun
+      name: envoy-gateway-load-test
+    fieldPaths:
+    - spec.arguments
+    options:
+      delimiter: '='
+      index: 1
+
 # ENDPOINTS -> TestRun env
 - source:
     kind: ConfigMap
@@ -182,6 +197,42 @@ replacements:
       name: envoy-gateway-load-test
     fieldPaths:
     - spec.runner.env.[name=GRACEFUL_STOP].value
+
+# PROMETHEUS_RW_URL -> TestRun env
+- source:
+    kind: ConfigMap
+    name: cluster-variables
+    fieldPath: data.PROMETHEUS_RW_URL
+  targets:
+  - select:
+      kind: TestRun
+      name: envoy-gateway-load-test
+    fieldPaths:
+    - spec.runner.env.[name=K6_PROMETHEUS_RW_SERVER_URL].value
+
+# PROMETHEUS_RW_HEADERS_X_SCOPE_ORGID -> TestRun env
+- source:
+    kind: ConfigMap
+    name: cluster-variables
+    fieldPath: data.PROMETHEUS_RW_HEADERS_X_SCOPE_ORGID
+  targets:
+  - select:
+      kind: TestRun
+      name: envoy-gateway-load-test
+    fieldPaths:
+    - spec.runner.env.[name=K6_PROMETHEUS_RW_HEADERS_X_SCOPE_ORGID].value
+
+# PROMETHEUS_RW_PUSH_INTERVAL -> TestRun env
+- source:
+    kind: ConfigMap
+    name: cluster-variables
+    fieldPath: data.PROMETHEUS_RW_PUSH_INTERVAL
+  targets:
+  - select:
+      kind: TestRun
+      name: envoy-gateway-load-test
+    fieldPaths:
+    - spec.runner.env.[name=K6_PROMETHEUS_RW_PUSH_INTERVAL].value
 
 # SLO_P95_LATENCY_MS -> TestRun env
 - source:

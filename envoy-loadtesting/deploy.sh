@@ -187,6 +187,30 @@ cmd_app() {
 
 cmd_k6() {
   log "Deploying k6 load test (context=${K6_CONTEXT}, namespace=${K6_NAMESPACE})..."
+
+  # Mirror the prometheus remote-write credentials from alloy-metrics into the
+  # k6 namespace. The TestRun runner consumes them via envFrom — the secret
+  # must exist before the TestRun is applied or the runner pods won't start.
+  log "Mirroring alloy-metrics credentials into ${K6_NAMESPACE}/k6-prometheus-rw-credentials..."
+  local metrics_username metrics_password
+  metrics_username="$(kk6 get secret alloy-metrics -n kube-system -o jsonpath='{.data.metrics-username}')"
+  metrics_password="$(kk6 get secret alloy-metrics -n kube-system -o jsonpath='{.data.metrics-password}')"
+  if [[ -z "${metrics_username}" || -z "${metrics_password}" ]]; then
+    err "Could not read metrics-username/metrics-password from kube-system/alloy-metrics on ${K6_CONTEXT}."
+    exit 1
+  fi
+  kk6 apply -f - <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: k6-prometheus-rw-credentials
+  namespace: ${K6_NAMESPACE}
+type: Opaque
+data:
+  K6_PROMETHEUS_RW_USERNAME: ${metrics_username}
+  K6_PROMETHEUS_RW_PASSWORD: ${metrics_password}
+EOF
+
   render_k6_manifests | kk6 apply -f -
   log "TestRun deployed. Watch progress:"
   log "  kubectl --context=${K6_CONTEXT} get testrun -n ${K6_NAMESPACE} -w"
@@ -228,6 +252,7 @@ cmd_teardown() {
 
   log "Deleting k6 resources (${K6_CONTEXT})..."
   render_k6_manifests | kk6 delete -f - --ignore-not-found 2>/dev/null || true
+  kk6 delete secret k6-prometheus-rw-credentials -n "${K6_NAMESPACE}" --ignore-not-found 2>/dev/null || true
 
   log "Deleting WC resources (${MC_CONTEXT})..."
   render_mc_manifests_all | kmc delete -f - --ignore-not-found

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Update `envoy-loadtesting` to allow pushing k6 runner pods' metrics to mimir.
+
 ## [0.3.0] - 2026-04-30
 
 ### Changed
