@@ -56,6 +56,11 @@ spec:
         type: RuntimeDefault
   runner:
     image: K6_IMAGE_PLACEHOLDER
+    envFrom:
+      # K6_PROMETHEUS_RW_USERNAME and K6_PROMETHEUS_RW_PASSWORD.
+      # Created by deploy.sh from the alloy-metrics secret in kube-system.
+      - secretRef:
+          name: k6-prometheus-rw-credentials
     env:
       # Infrastructure — composed from shared WC + BASE_DOMAIN
       - name: ENDPOINTS

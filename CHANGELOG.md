@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Update `envoy-loadtesting` to allow pushing k6 runner pods' metrics to mimir.
+- Authenticate k6 runner pods' prometheus remote-write against mimir by mirroring `kube-system/alloy-metrics` credentials into a `k6-prometheus-rw-credentials` secret consumed via `envFrom`.
 
 ## [0.3.0] - 2026-04-30
 
