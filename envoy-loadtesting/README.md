@@ -72,6 +72,7 @@ Three separate clusters are involved. Each gets its own kubectl context:
 |------------------------------|------------|---------------------------------------|
 | `K6_NAMESPACE`               | `gs-k6-operator` | Namespace for k6-operator       |
 | `K6_IMAGE`                   | `gsoci.azurecr.io/giantswarm/k6:1.6.0` | k6 container image |
+| `TEST_ID`                    | `envoy-load-testing` | k6 test id used in grafana |
 | `ENDPOINTS`                  | `10`       | Number of test endpoint replicas      |
 | `SCENARIO_DURATION_SECONDS`  | `1200`     | Duration per scenario (20 min)        |
 | `WAIT_BETWEEN_SCENARIOS`     | `300`      | Pause between Envoy and Nginx (5 min) |
@@ -79,6 +80,9 @@ Three separate clusters are involved. Each gets its own kubectl context:
 | `PRE_ALLOCATED_VUS`          | `50`       | Pre-allocated virtual users           |
 | `MAX_VUS`                    | `150`      | Maximum virtual users                 |
 | `GRACEFUL_STOP`              | `30s`      | Graceful shutdown period              |
+| `PROMETHEUS_RW_URL`          | `http://mimir-gateway.mimir.svc.cluster.local/api/v1/push`      | prometheus remote-write target for pushing metrics             |
+| `K6_PROMETHEUS_RW_HTTP_HEADERS`              | `giantswarm`      | organisation name in grafana              |
+| `PROMETHEUS_RW_PUSH_INTERVAL`              | `5s`      | Metrics push interval              |
 | `SLO_P95_LATENCY_MS`        | `500`      | p95 latency threshold (ms)            |
 | `SLO_P99_LATENCY_MS`        | `1000`     | p99 latency threshold (ms)            |
 | `SLO_ERROR_RATE`             | `0.001`    | Max error rate (0.1%)                 |

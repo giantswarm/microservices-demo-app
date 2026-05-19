@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-05-18
+
+### Fixed
+
+- Fix k6 prometheus remote write headers.
+
+## [0.4.0] - 2026-05-18
+
+### Changed
+
+- Update `envoy-loadtesting` to allow pushing k6 runner pods' metrics to mimir.
+
 ## [0.3.0] - 2026-04-30
 
 ### Changed
@@ -36,7 +48,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial version of the app.
 
-[Unreleased]: https://github.com/giantswarm/microservices-demo-app/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/giantswarm/microservices-demo-app/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/giantswarm/microservices-demo-app/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/giantswarm/microservices-demo-app/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/giantswarm/microservices-demo-app/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/giantswarm/microservices-demo-app/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/giantswarm/microservices-demo-app/compare/v0.1.0...v0.2.0
