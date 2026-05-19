@@ -150,17 +150,41 @@ replacements:
     fieldPaths:
     - spec.runner.env.[name=WAIT_BETWEEN_SCENARIOS].value
 
-# ARRIVAL_RATE -> TestRun env
+# PEAK_HTTP_RPS -> TestRun env
 - source:
     kind: ConfigMap
     name: cluster-variables
-    fieldPath: data.ARRIVAL_RATE
+    fieldPath: data.PEAK_HTTP_RPS
   targets:
   - select:
       kind: TestRun
       name: envoy-gateway-load-test
     fieldPaths:
-    - spec.runner.env.[name=ARRIVAL_RATE].value
+    - spec.runner.env.[name=PEAK_HTTP_RPS].value
+
+# RAMP_STEP_HTTP_RPS -> TestRun env
+- source:
+    kind: ConfigMap
+    name: cluster-variables
+    fieldPath: data.RAMP_STEP_HTTP_RPS
+  targets:
+  - select:
+      kind: TestRun
+      name: envoy-gateway-load-test
+    fieldPaths:
+    - spec.runner.env.[name=RAMP_STEP_HTTP_RPS].value
+
+# RAMP_STEP_DURATION_SECONDS -> TestRun env
+- source:
+    kind: ConfigMap
+    name: cluster-variables
+    fieldPath: data.RAMP_STEP_DURATION_SECONDS
+  targets:
+  - select:
+      kind: TestRun
+      name: envoy-gateway-load-test
+    fieldPaths:
+    - spec.runner.env.[name=RAMP_STEP_DURATION_SECONDS].value
 
 # PRE_ALLOCATED_VUS -> TestRun env
 - source:
