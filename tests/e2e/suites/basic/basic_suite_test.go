@@ -3,6 +3,7 @@ package basic
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,17 +21,62 @@ import (
 
 const (
 	isUpgrade = false
+
+	proxyControllerNginx = "nginx"
+	proxyControllerKong  = "kong"
+
+	// proxyControllerEnvVar selects which ingress controller is deployed
+	// alongside Envoy Gateway. Mirrors PROXY_CONTROLLER in
+	// envoy-loadtesting/config.env so the e2e suite and the manual
+	// load-testing pipeline exercise the same single-controller setup.
+	proxyControllerEnvVar = "PROXY_CONTROLLER"
 )
 
-const additionalAppConfig = `
+// proxyController is the ingress controller that this suite will install,
+// resolved once at package init from the PROXY_CONTROLLER env var.
+// Default: nginx.
+var proxyController = resolveProxyController()
+
+func resolveProxyController() string {
+	v := strings.ToLower(strings.TrimSpace(os.Getenv(proxyControllerEnvVar)))
+	switch v {
+	case "":
+		return proxyControllerNginx
+	case proxyControllerNginx, proxyControllerKong:
+		return v
+	default:
+		panic(fmt.Sprintf("%s must be %q or %q (got: %q)", proxyControllerEnvVar, proxyControllerNginx, proxyControllerKong, v))
+	}
+}
+
+// buildAppValues returns the per-controller values overlay applied to the
+// microservices-demo-app HelmRelease. Only the chosen controller's routing
+// path is enabled, matching envoy-loadtesting/wc-deployment/loadtesting-app.yaml.
+func buildAppValues(baseDomain string) string {
+	switch proxyController {
+	case proxyControllerKong:
+		return fmt.Sprintf(`
 ingress:
-  base: %s
+  enabled: false
 kong:
+  enabled: true
   base: %s
   ingressCname: kong-ingress.%s
 httproute:
   base: %s
-`
+`, baseDomain, baseDomain, baseDomain)
+	default:
+		return fmt.Sprintf(`
+ingress:
+  enabled: true
+  base: %s
+kong:
+  enabled: false
+httproute:
+  base: %s
+`, baseDomain, baseDomain)
+	}
+}
 
 func TestBasic(t *testing.T) {
 	suite.New().
@@ -48,7 +94,7 @@ func TestBasic(t *testing.T) {
 			It("should configure app values", FlakeAttempts(3), func() {
 				baseDomain := getWorkloadClusterBaseDomain()
 				state.SetApplication(
-					state.GetApplication().MustWithValues(fmt.Sprintf(additionalAppConfig, baseDomain, baseDomain, baseDomain, baseDomain), nil),
+					state.GetApplication().MustWithValues(buildAppValues(baseDomain), nil),
 				)
 			})
 
@@ -56,13 +102,17 @@ func TestBasic(t *testing.T) {
 				createWorkloadClusterNamespace("loadtesting")
 			})
 
-			It("should install aws-load-balancer-controller and ingress-nginx", FlakeAttempts(3), func() {
+			It("should install aws-load-balancer-controller", FlakeAttempts(3), func() {
 				mcName := state.GetFramework().MC().GetClusterName()
 				clusterName := state.GetCluster().Name
-
 				awsLBApp = deployDependency("aws-lb-controller-bundle", fmt.Sprintf(awsLBControllerBundleValues, mcName, clusterName, clusterName))
-				ingressNginxApp = deployDependency("ingress-nginx", ingressNginxValues)
 			})
+
+			if proxyController == proxyControllerNginx {
+				It("should install ingress-nginx", FlakeAttempts(3), func() {
+					ingressNginxApp = deployDependency("ingress-nginx", ingressNginxValues)
+				})
+			}
 
 			It("should wait for aws-load-balancer-controller to be ready", FlakeAttempts(3), func() {
 				waitForDependency(awsLBApp)
@@ -89,18 +139,26 @@ func TestBasic(t *testing.T) {
 				}
 			})
 
-			It("should wait for ingress-nginx to be ready", FlakeAttempts(3), func() {
-				waitForDependency(ingressNginxApp)
-			})
+			if proxyController == proxyControllerNginx {
+				It("should wait for ingress-nginx to be ready", FlakeAttempts(3), func() {
+					waitForDependency(ingressNginxApp)
+				})
+			}
 
-			It("should install kong-app", FlakeAttempts(3), func() {
-				baseDomain := getWorkloadClusterBaseDomain()
-				kongApp = deployDependency("kong-app", fmt.Sprintf(kongAppValues, baseDomain), "kong")
-				waitForDependency(kongApp)
-			})
+			if proxyController == proxyControllerKong {
+				It("should install kong-app", FlakeAttempts(3), func() {
+					baseDomain := getWorkloadClusterBaseDomain()
+					kongApp = deployDependency("kong-app", fmt.Sprintf(kongAppValues, baseDomain), "kong")
+					waitForDependency(kongApp)
+				})
+			}
 
 			It("should have ready dependency deployments on the workload cluster", FlakeAttempts(3), func() {
-				for _, ns := range []string{"aws-load-balancer-controller", "envoy-gateway-system", "default", "kong"} {
+				namespaces := []string{"aws-load-balancer-controller", "envoy-gateway-system", "default"}
+				if proxyController == proxyControllerKong {
+					namespaces = append(namespaces, "kong")
+				}
+				for _, ns := range namespaces {
 					Eventually(func() (bool, error) {
 						return deploymentReadyInNamespace(ns)
 					}).
@@ -111,7 +169,11 @@ func TestBasic(t *testing.T) {
 			})
 
 			It("should have ready LoadBalancer services on the workload cluster", FlakeAttempts(3), func() {
-				for _, ns := range []string{"default", "envoy-gateway-system", "kong"} {
+				namespaces := []string{"default", "envoy-gateway-system"}
+				if proxyController == proxyControllerKong {
+					namespaces = append(namespaces, "kong")
+				}
+				for _, ns := range namespaces {
 					Eventually(func() (bool, error) {
 						return loadBalancerServiceReadyInNamespace(ns)
 					}).
@@ -121,23 +183,25 @@ func TestBasic(t *testing.T) {
 				}
 			})
 
-			It("should configure kong prometheus plugin", FlakeAttempts(3), func() {
-				By("Waiting for KongClusterPlugin CRD to be registered")
-				Eventually(func() (bool, error) {
-					return crdExists("kongclusterplugins.configuration.konghq.com")
-				}).
-					WithTimeout(5 * time.Minute).
-					WithPolling(10 * time.Second).
-					Should(BeTrue())
+			if proxyController == proxyControllerKong {
+				It("should configure kong prometheus plugin", FlakeAttempts(3), func() {
+					By("Waiting for KongClusterPlugin CRD to be registered")
+					Eventually(func() (bool, error) {
+						return crdExists("kongclusterplugins.configuration.konghq.com")
+					}).
+						WithTimeout(5 * time.Minute).
+						WithPolling(10 * time.Second).
+						Should(BeTrue())
 
-				By("Adding extraObjects config to kong-app via spec.extraConfigs")
-				clusterName := state.GetCluster().Name
-				addExtraConfigToApp(
-					fmt.Sprintf("%s-kong-app", clusterName),
-					fmt.Sprintf("%s-kong-extra-objects", clusterName),
-					kongExtraObjectsValues,
-				)
-			})
+					By("Adding extraObjects config to kong-app via spec.extraConfigs")
+					clusterName := state.GetCluster().Name
+					addExtraConfigToApp(
+						fmt.Sprintf("%s-kong-app", clusterName),
+						fmt.Sprintf("%s-kong-extra-objects", clusterName),
+						kongExtraObjectsValues,
+					)
+				})
+			}
 		}).
 		Tests(func() {
 			var (
@@ -169,52 +233,65 @@ func TestBasic(t *testing.T) {
 			})
 			It("should have ready certificates on the workload cluster", func() {
 				Eventually(func() (bool, error) {
-					return certificateIsReady("loadtesting", "frontend-nginx-wildcard")
-				}).
-					WithTimeout(10 * time.Minute).
-					WithPolling(5 * time.Second).
-					Should(BeTrue())
-
-				Eventually(func() (bool, error) {
 					return certificateIsReady("loadtesting-0", "gateway-0-https")
 				}).
 					WithTimeout(10 * time.Minute).
 					WithPolling(5 * time.Second).
 					Should(BeTrue())
 
-				Eventually(func() (bool, error) {
-					return certificateIsReady("loadtesting", "frontend-kong-wildcard")
-				}).
-					WithTimeout(10 * time.Minute).
-					WithPolling(5 * time.Second).
-					Should(BeTrue())
+				switch proxyController {
+				case proxyControllerNginx:
+					Eventually(func() (bool, error) {
+						return certificateIsReady("loadtesting", "frontend-nginx-wildcard")
+					}).
+						WithTimeout(10 * time.Minute).
+						WithPolling(5 * time.Second).
+						Should(BeTrue())
+				case proxyControllerKong:
+					Eventually(func() (bool, error) {
+						return certificateIsReady("loadtesting", "frontend-kong-wildcard")
+					}).
+						WithTimeout(10 * time.Minute).
+						WithPolling(5 * time.Second).
+						Should(BeTrue())
+				}
 			})
-			It("should serve traffic from ingress-nginx", func() {
-				expectEndpointServesTraffic(nginxUrl)
-			})
+			if proxyController == proxyControllerNginx {
+				It("should serve traffic from ingress-nginx", func() {
+					expectEndpointServesTraffic(nginxUrl)
+				})
+			}
 			It("should serve traffic from envoy gateway", func() {
 				expectEndpointServesTraffic(envoyUrl)
 			})
-			It("should serve traffic from kong", func() {
-				expectEndpointServesTraffic(kongUrl)
-			})
+			if proxyController == proxyControllerKong {
+				It("should serve traffic from kong", func() {
+					expectEndpointServesTraffic(kongUrl)
+				})
+			}
 			It("should run k6 load tests successfully", func() {
 				k6Namespace := getK6Namespace()
 				baseDomain := getWorkloadClusterBaseDomain()
 				testRunName := fmt.Sprintf("e2e-load-test-%s", state.GetCluster().Name)
 				configMapName := fmt.Sprintf("e2e-load-test-scenario-%s", state.GetCluster().Name)
+				testID := envOrDefault("K6_TEST_ID", testRunName)
 
 				// Clean up any stale resources from a previous interrupted run
 				cleanupK6Resources(testRunName, configMapName, k6Namespace)
 
-				By("Creating test scenario ConfigMap on k6 cluster")
+				if prometheusEnabled() {
+					By("Mirroring alloy-metrics credentials into the k6 namespace")
+					mirrorPrometheusCredentials(k6Namespace)
+				}
+
+				By("Creating test scenario ConfigMap on the MC")
 				cm := buildScenarioConfigMap(configMapName, k6Namespace)
-				err := getK6Client().Create(state.GetContext(), cm)
+				err := state.GetFramework().MC().Create(state.GetContext(), cm)
 				Expect(err).NotTo(HaveOccurred())
 
-				By("Creating TestRun on k6 cluster")
-				testRun := buildTestRunUnstructured(testRunName, k6Namespace, configMapName, baseDomain)
-				err = getK6Client().Create(state.GetContext(), testRun)
+				By("Creating TestRun on the MC")
+				testRun := buildTestRunUnstructured(testRunName, k6Namespace, configMapName, baseDomain, testID)
+				err = state.GetFramework().MC().Create(state.GetContext(), testRun)
 				Expect(err).NotTo(HaveOccurred())
 
 				By("Waiting for TestRun to complete")
@@ -241,10 +318,6 @@ func TestBasic(t *testing.T) {
 			})
 		}).
 		AfterSuite(func() {
-			kubeconfigPath := getK6KubeconfigPath()
-			if _, err := os.Stat(kubeconfigPath); os.IsNotExist(err) {
-				return
-			}
 			k6Namespace := getK6Namespace()
 			testRunName := fmt.Sprintf("e2e-load-test-%s", state.GetCluster().Name)
 			configMapName := fmt.Sprintf("e2e-load-test-scenario-%s", state.GetCluster().Name)

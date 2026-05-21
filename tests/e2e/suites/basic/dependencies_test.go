@@ -56,6 +56,8 @@ apps:
         values: |
           gateways:
             default:
+              tlsIssuer:
+                enabled: false
               allowedListeners:
                 enabled: true
                 namespaces:
@@ -69,6 +71,10 @@ apps:
                 https:
                   subdomains:
                     - onlineboutique
+                  certificate:
+                    issuer:
+                      kind: ClusterIssuer
+                      name: letsencrypt-giantswarm
   gatewayApiCrds:
     enabled: true
     userConfig:
@@ -97,6 +103,10 @@ proxy:
     external-dns.alpha.kubernetes.io/hostname: kong-ingress.%s
 `
 
+// kongExtraObjectsValues is applied as an extraConfig overlay AFTER kong-app is
+// deployed and its KongClusterPlugin CRD is registered. Inlining these into the
+// initial kongAppValues fails on first install because Helm renders
+// extraObjects before the chart's own CRDs are applied.
 const kongExtraObjectsValues = `
 extraObjects:
   - apiVersion: configuration.konghq.com/v1
@@ -137,10 +147,25 @@ extraObjects:
 
 const ingressNginxValues = `
 controller:
+  ingressClassResource:
+    enabled: true
+  service:
+    externalDNS:
+      enabled: true
   extraArgs:
     update-status: "true"
-
 `
+
+// dependencyVersions pins the version of each dependency app to match the
+// manual load-testing pipeline (envoy-loadtesting/wc-deployment/additional-apps.yaml).
+// Keep in sync with that file so the e2e suite exercises the same versions the
+// benchmark uses.
+var dependencyVersions = map[string]string{
+	"aws-lb-controller-bundle": "5.1.0",
+	"ingress-nginx":            "4.2.5",
+	"gateway-api-bundle":       "1.15.0",
+	"kong-app":                 "5.2.2",
+}
 
 func deployDependency(depName, depValues string, installNs ...string) *application.Application {
 	By(fmt.Sprintf("deploying %s", depName))
@@ -156,11 +181,16 @@ func deployDependency(depName, depValues string, installNs ...string) *applicati
 		installNamespace = installNs[0]
 	}
 
+	version, ok := dependencyVersions[depName]
+	if !ok {
+		Fail(fmt.Sprintf("no version pin defined for dependency %q — add it to dependencyVersions", depName))
+	}
+
 	clusterName := state.GetCluster().Name
 	app := application.New(fmt.Sprintf("%s-%s", clusterName, depName), depName).
 		WithCatalog("giantswarm").
 		WithOrganization(*org).
-		WithVersion("latest").
+		WithVersion(version).
 		WithClusterName(clusterName).
 		WithInCluster(isBundle).
 		WithInstallNamespace(installNamespace).
