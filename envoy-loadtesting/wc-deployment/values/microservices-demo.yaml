@@ -1,0 +1,169 @@
+ingress:
+  enabled: ${INGRESS_NGINX_ENABLED}
+  number: ${PUBLIC_ENDPOINTS}
+  base: ${WC}.${BASE_DOMAIN}
+  host: nginx-onlineboutique
+
+kong:
+  enabled: ${KONG_ENABLED}
+  number: ${PUBLIC_ENDPOINTS}
+  base: ${WC}.${BASE_DOMAIN}
+  host: kong-onlineboutique
+  ingressCname: kong-ingress.${WC}.${BASE_DOMAIN}
+
+httproute:
+  enabled: true
+  base: ${WC}.${BASE_DOMAIN}
+  hostname: onlineboutique
+  namespaces:
+    create: true
+    number: ${PUBLIC_ENDPOINTS}
+
+adService:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 180Mi
+    limits:
+      cpu: 300m
+      memory: 300Mi
+  hpa:
+    enabled: true
+    minReplicas: ${HPA_MIN_REPLICAS}
+    maxReplicas: ${HPA_MAX_REPLICAS}
+    targetCPUUtilizationPercentage: 80
+
+cartService:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: ${HPA_MIN_REPLICAS}
+    maxReplicas: ${HPA_MAX_REPLICAS}
+    targetCPUUtilizationPercentage: 80
+
+checkoutService:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: ${HPA_MIN_REPLICAS}
+    maxReplicas: ${HPA_MAX_REPLICAS}
+    targetCPUUtilizationPercentage: 80
+
+currencyService:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: ${HPA_MIN_REPLICAS}
+    maxReplicas: ${HPA_MAX_REPLICAS}
+    targetCPUUtilizationPercentage: 80
+
+emailService:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: ${HPA_MIN_REPLICAS}
+    maxReplicas: ${HPA_MAX_REPLICAS}
+    targetCPUUtilizationPercentage: 80
+
+frontend:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: ${HPA_MIN_REPLICAS}
+    maxReplicas: ${HPA_MAX_REPLICAS}
+    targetCPUUtilizationPercentage: 80
+
+loadGenerator:
+  resources:
+    requests:
+      cpu: 300m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+paymentService:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: ${HPA_MIN_REPLICAS}
+    maxReplicas: ${HPA_MAX_REPLICAS}
+    targetCPUUtilizationPercentage: 80
+
+productCatalogService:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: ${HPA_MIN_REPLICAS}
+    maxReplicas: ${HPA_MAX_REPLICAS}
+    targetCPUUtilizationPercentage: 80
+
+recommendationService:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 220Mi
+    limits:
+      cpu: 200m
+      memory: 450Mi
+  hpa:
+    enabled: true
+    minReplicas: ${HPA_MIN_REPLICAS}
+    maxReplicas: ${HPA_MAX_REPLICAS}
+    targetCPUUtilizationPercentage: 80
+
+shippingService:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: ${HPA_MIN_REPLICAS}
+    maxReplicas: ${HPA_MAX_REPLICAS}
+    targetCPUUtilizationPercentage: 80
