@@ -76,7 +76,9 @@ Three separate clusters are involved. Each gets its own kubectl context:
 | `ENDPOINTS`                  | `10`       | Number of test endpoint replicas      |
 | `SCENARIO_DURATION_SECONDS`  | `1200`     | Duration per scenario (20 min)        |
 | `WAIT_BETWEEN_SCENARIOS`     | `300`      | Pause between Envoy and Nginx (5 min) |
-| `ARRIVAL_RATE`               | `26`       | Requests per second (~50 HTTP req/s)  |
+| `PEAK_HTTP_RPS`               | `50`       | Peak requests per second (~50 HTTP req/s)  |
+| `RAMP_STEP_HTTP_RPS`               | `10`       | Increment step to peak RPS  |
+| `RAMP_STEP_DURATION_SECONDS`               | `300`       | Delay between each ramp up  |
 | `PRE_ALLOCATED_VUS`          | `50`       | Pre-allocated virtual users           |
 | `MAX_VUS`                    | `150`      | Maximum virtual users                 |
 | `GRACEFUL_STOP`              | `30s`      | Graceful shutdown period              |
