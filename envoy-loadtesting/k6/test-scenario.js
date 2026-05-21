@@ -13,12 +13,14 @@ if (PROXY_CONTROLLER !== "nginx" && PROXY_CONTROLLER !== "kong") {
 }
 
 // Scenario timing & load shape
-const SCENARIO_DURATION_SECONDS = parseInt(__ENV.SCENARIO_DURATION_SECONDS || "1200", 10);  // 20m
-const WAIT_BETWEEN_SCENARIOS    = parseInt(__ENV.WAIT_BETWEEN_SCENARIOS    || "300",  10);   // 5m
-const ARRIVAL_RATE              = parseInt(__ENV.ARRIVAL_RATE              || "26",   10);   // ~50 HTTP req/s
-const PRE_ALLOCATED_VUS         = parseInt(__ENV.PRE_ALLOCATED_VUS        || "50",   10);
-const MAX_VUS                   = parseInt(__ENV.MAX_VUS                  || "150",  10);
-const GRACEFUL_STOP             = __ENV.GRACEFUL_STOP || "30s";
+const SCENARIO_DURATION_SECONDS  = parseInt(__ENV.SCENARIO_DURATION_SECONDS  || "1200", 10); // 20m
+const WAIT_BETWEEN_SCENARIOS     = parseInt(__ENV.WAIT_BETWEEN_SCENARIOS     || "300",  10); // 5m
+const PEAK_HTTP_RPS              = parseInt(__ENV.PEAK_HTTP_RPS              || "50",   10); // target HTTP req/s
+const RAMP_STEP_HTTP_RPS         = parseInt(__ENV.RAMP_STEP_HTTP_RPS         || "0",    10); // 0 = no ramp
+const RAMP_STEP_DURATION_SECONDS = parseInt(__ENV.RAMP_STEP_DURATION_SECONDS || "300",  10);
+const PRE_ALLOCATED_VUS          = parseInt(__ENV.PRE_ALLOCATED_VUS          || "50",   10);
+const MAX_VUS                    = parseInt(__ENV.MAX_VUS                    || "150",  10);
+const GRACEFUL_STOP              = __ENV.GRACEFUL_STOP || "30s";
 
 // SLO thresholds — align with giantswarm/giantswarm#35147 recommendations.
 const SLO_P95_LATENCY_MS = __ENV.SLO_P95_LATENCY_MS || "500";
@@ -49,27 +51,64 @@ const PRODUCTS = [
 const CURRENCIES = ["EUR", "USD", "JPY", "CAD", "GBP", "TRY"];
 
 const FLOWS = [
-  { name: "home", weight: 1 },
-  { name: "browseProduct", weight: 10 },
-  { name: "viewCart", weight: 3 },
-  { name: "addToCart", weight: 2 },
-  { name: "setCurrency", weight: 2 },
-  { name: "checkout", weight: 1 },
+  { name: "home",          weight: 1,  httpReqs: 1 },
+  { name: "browseProduct", weight: 10, httpReqs: 2 },
+  { name: "viewCart",      weight: 3,  httpReqs: 1 },
+  { name: "addToCart",     weight: 2,  httpReqs: 2 },
+  { name: "setCurrency",   weight: 2,  httpReqs: 1 },
+  { name: "checkout",      weight: 1,  httpReqs: 2 },
 ];
 
-const SCENARIO_CONFIG = {
-  executor: "constant-arrival-rate",
-  rate: ARRIVAL_RATE,
-  timeUnit: "1s",
-  duration: `${SCENARIO_DURATION_SECONDS}s`,
-  preAllocatedVUs: PRE_ALLOCATED_VUS,
-  maxVUs: MAX_VUS,
-  gracefulStop: GRACEFUL_STOP,
-};
+// Translate the user-facing HTTP req/s budget into a k6 iteration rate using
+// the weighted average HTTP calls per flow.
+const FLOW_TOTAL_WEIGHT = FLOWS.reduce((s, f) => s + f.weight, 0);
+const AVG_HTTP_PER_ITERATION =
+  FLOWS.reduce((s, f) => s + f.weight * f.httpReqs, 0) / FLOW_TOTAL_WEIGHT;
+const httpRpsToIterRate = (httpRps) =>
+  Math.max(1, Math.round(httpRps / AVG_HTTP_PER_ITERATION));
+const PEAK_ITERATION_RATE      = httpRpsToIterRate(PEAK_HTTP_RPS);
+const RAMP_STEP_ITERATION_RATE = RAMP_STEP_HTTP_RPS > 0 ? httpRpsToIterRate(RAMP_STEP_HTTP_RPS) : 0;
+
+function buildScenarioConfig() {
+  const base = {
+    timeUnit: "1s",
+    preAllocatedVUs: PRE_ALLOCATED_VUS,
+    maxVUs: MAX_VUS,
+    gracefulStop: GRACEFUL_STOP,
+  };
+  if (RAMP_STEP_ITERATION_RATE > 0 && PEAK_ITERATION_RATE > RAMP_STEP_ITERATION_RATE) {
+    const numSteps = Math.ceil(PEAK_ITERATION_RATE / RAMP_STEP_ITERATION_RATE);
+    const stages = [];
+    for (let i = 1; i <= numSteps; i++) {
+      const target = Math.min(i * RAMP_STEP_ITERATION_RATE, PEAK_ITERATION_RATE);
+      stages.push({ target, duration: `${RAMP_STEP_DURATION_SECONDS}s` });
+    }
+    const rampSeconds = numSteps * RAMP_STEP_DURATION_SECONDS;
+    const holdSeconds = Math.max(0, SCENARIO_DURATION_SECONDS - rampSeconds);
+    if (holdSeconds > 0) {
+      stages.push({ target: PEAK_ITERATION_RATE, duration: `${holdSeconds}s` });
+    }
+    return {
+      config: { ...base, executor: "ramping-arrival-rate", startRate: 0, stages },
+      totalSeconds: rampSeconds + holdSeconds,
+    };
+  }
+  return {
+    config: {
+      ...base,
+      executor: "constant-arrival-rate",
+      rate: PEAK_ITERATION_RATE,
+      duration: `${SCENARIO_DURATION_SECONDS}s`,
+    },
+    totalSeconds: SCENARIO_DURATION_SECONDS,
+  };
+}
+
+const { config: SCENARIO_CONFIG, totalSeconds: SCENARIO_TOTAL_SECONDS } = buildScenarioConfig();
 
 // Envoy starts immediately; the chosen reverse proxy controller starts after Envoy's
-// duration + the wait window so we don't synchronize request bursts.
-const reverseProxyStartTime = `${SCENARIO_DURATION_SECONDS + WAIT_BETWEEN_SCENARIOS}s`;
+// total runtime + the wait window so we don't synchronize request bursts.
+const reverseProxyStartTime = `${SCENARIO_TOTAL_SECONDS + WAIT_BETWEEN_SCENARIOS}s`;
 const reverseProxyScenarioName = `${PROXY_CONTROLLER}_simulation`;
 const reverseProxyExec = PROXY_CONTROLLER === "kong" ? "kongScenario" : "nginxScenario";
 

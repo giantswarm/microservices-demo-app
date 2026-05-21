@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Replace `ARRIVAL_RATE` variable in TestRun by `PEAK_HTTP_RPS`, `RAMP_STEP_HTTP_RPS` and `RAMP_STEP_DURATION_SECONDS`for more granular control of the load test settings.
+- Update `test-scenario.js` to work with RPS ramp ups.
+
 ## [0.4.1] - 2026-05-18
 
 ### Fixed
