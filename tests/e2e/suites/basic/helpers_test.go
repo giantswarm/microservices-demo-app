@@ -163,32 +163,47 @@ func loadBalancerServiceReadyInNamespace(namespace string) (bool, error) {
 	return false, nil
 }
 
-func certificateIsReady(namespace, name string) (bool, error) {
+func allCertificatesReady(expected []types.NamespacedName) (bool, error) {
 	wcClient, err := state.GetFramework().WC(state.GetCluster().Name)
 	if err != nil {
 		return false, err
 	}
 
-	logger.Log("Checking if certificate %s/%s is ready", namespace, name)
-	cert := cmv1.Certificate{}
-	err = wcClient.Get(state.GetContext(), types.NamespacedName{Name: name, Namespace: namespace}, &cert)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			logger.Log("Certificate %s/%s not found yet", namespace, name)
-			return false, nil
-		}
+	logger.Log("Listing all certificates on the workload cluster")
+	certs := &cmv1.CertificateList{}
+	if err := wcClient.List(state.GetContext(), certs); err != nil {
 		return false, err
 	}
 
-	for _, condition := range cert.Status.Conditions {
-		if condition.Type == cmv1.CertificateConditionReady && condition.Status == cmmeta.ConditionTrue {
-			logger.Log("Certificate %s/%s is ready", namespace, name)
-			return true, nil
+	present := make(map[types.NamespacedName]struct{}, len(certs.Items))
+	for i := range certs.Items {
+		cert := &certs.Items[i]
+		present[types.NamespacedName{Namespace: cert.Namespace, Name: cert.Name}] = struct{}{}
+	}
+	for _, key := range expected {
+		if _, ok := present[key]; !ok {
+			logger.Log("Expected certificate %s not found yet", key)
+			return false, nil
 		}
 	}
 
-	logger.Log("Certificate %s/%s not ready yet", namespace, name)
-	return false, nil
+	for i := range certs.Items {
+		cert := &certs.Items[i]
+		ready := false
+		for _, condition := range cert.Status.Conditions {
+			if condition.Type == cmv1.CertificateConditionReady && condition.Status == cmmeta.ConditionTrue {
+				ready = true
+				break
+			}
+		}
+		if !ready {
+			logger.Log("Certificate %s/%s not ready yet", cert.Namespace, cert.Name)
+			return false, nil
+		}
+	}
+
+	logger.Log("All %d certificates are ready", len(certs.Items))
+	return true, nil
 }
 
 func crdExists(name string) (bool, error) {

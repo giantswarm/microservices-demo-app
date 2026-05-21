@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/giantswarm/apptest-framework/v4/pkg/state"
 	"github.com/giantswarm/apptest-framework/v4/pkg/suite"
@@ -232,40 +233,48 @@ func TestBasic(t *testing.T) {
 					Should(BeTrue())
 			})
 			It("should have ready certificates on the workload cluster", func() {
+				expected := []types.NamespacedName{
+					{Namespace: "loadtesting-0", Name: "gateway-0-https"},
+				}
+				switch proxyController {
+				case proxyControllerNginx:
+					expected = append(expected, types.NamespacedName{Namespace: "loadtesting", Name: "frontend-nginx-wildcard"})
+				case proxyControllerKong:
+					expected = append(expected, types.NamespacedName{Namespace: "loadtesting", Name: "frontend-kong-wildcard"})
+				}
+
 				Eventually(func() (bool, error) {
-					return certificateIsReady("loadtesting-0", "gateway-0-https")
+					return allCertificatesReady(expected)
 				}).
 					WithTimeout(10 * time.Minute).
 					WithPolling(5 * time.Second).
 					Should(BeTrue())
-
-				switch proxyController {
-				case proxyControllerNginx:
-					Eventually(func() (bool, error) {
-						return certificateIsReady("loadtesting", "frontend-nginx-wildcard")
-					}).
-						WithTimeout(10 * time.Minute).
-						WithPolling(5 * time.Second).
-						Should(BeTrue())
-				case proxyControllerKong:
-					Eventually(func() (bool, error) {
-						return certificateIsReady("loadtesting", "frontend-kong-wildcard")
-					}).
-						WithTimeout(10 * time.Minute).
-						WithPolling(5 * time.Second).
-						Should(BeTrue())
-				}
 			})
 			if proxyController == proxyControllerNginx {
 				It("should serve traffic from ingress-nginx", func() {
+					DeferCleanup(func() {
+						if CurrentSpecReport().Failed() {
+							AbortSuite("ingress-nginx failed to serve traffic, aborting remaining tests")
+						}
+					})
 					expectEndpointServesTraffic(nginxUrl)
 				})
 			}
 			It("should serve traffic from envoy gateway", func() {
+				DeferCleanup(func() {
+					if CurrentSpecReport().Failed() {
+						AbortSuite("envoy gateway failed to serve traffic, aborting remaining tests")
+					}
+				})
 				expectEndpointServesTraffic(envoyUrl)
 			})
 			if proxyController == proxyControllerKong {
 				It("should serve traffic from kong", func() {
+					DeferCleanup(func() {
+						if CurrentSpecReport().Failed() {
+							AbortSuite("kong failed to serve traffic, aborting remaining tests")
+						}
+					})
 					expectEndpointServesTraffic(kongUrl)
 				})
 			}
