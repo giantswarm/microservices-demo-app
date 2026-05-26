@@ -396,6 +396,7 @@ replacements:
     - spec.chartRef.name
     - spec.kubeConfig.secretRef.name
     - spec.releaseName
+    - spec.valuesFrom.[name=CLUSTER-microservices-demo-user-values].name
     options:
       delimiter: '-'
       index: 0
