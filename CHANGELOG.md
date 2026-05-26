@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed several typos and small errors that would prevent the load testing from succeeding.
+
 ### Changed
 
 - Extend load test configuration possibilities (WC, microservices-demo app).
