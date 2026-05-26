@@ -88,7 +88,7 @@ render_manifests() {
     > "${tmpdir}/wc-deployment/values/cluster-userconfig.yaml"
   envsubst '${WC} ${BASE_DOMAIN}' \
     < "${SCRIPT_DIR}/wc-deployment/values/gateway-api-bundle.yaml" \
-    > "${tmpdir}/wc-deployment/gateway-api-bundle.yaml"
+    > "${tmpdir}/wc-deployment/values/gateway-api-bundle.yaml"
   envsubst '${INGRESS_NGINX_ENABLED} ${KONG_ENABLED} ${WC} ${BASE_DOMAIN} ${PUBLIC_ENDPOINTS} ${HPA_MIN_REPLICAS} ${HPA_MAX_REPLICAS}' \
     < "${SCRIPT_DIR}/wc-deployment/values/microservices-demo.yaml" \
     > "${tmpdir}/wc-deployment/values/microservices-demo.yaml"
