@@ -13,11 +13,11 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/giantswarm/apptest-framework/v4/pkg/state"
-	"github.com/giantswarm/apptest-framework/v4/pkg/suite"
-	"github.com/giantswarm/clustertest/v4/pkg/application"
-	"github.com/giantswarm/clustertest/v4/pkg/logger"
-	"github.com/giantswarm/clustertest/v4/pkg/wait"
+	"github.com/giantswarm/apptest-framework/v5/pkg/state"
+	"github.com/giantswarm/apptest-framework/v5/pkg/suite"
+	"github.com/giantswarm/clustertest/v5/pkg/application"
+	"github.com/giantswarm/clustertest/v5/pkg/logger"
+	"github.com/giantswarm/clustertest/v5/pkg/wait"
 )
 
 const (
