@@ -37,4 +37,4 @@ spec:
   valuesFrom:
     - kind: ConfigMap
       name: CLUSTER-microservices-demo-user-values
-      valuesKey: microservices-demo.yaml
+      valuesKey: values.yaml
