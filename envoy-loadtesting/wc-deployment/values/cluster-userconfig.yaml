@@ -22,9 +22,9 @@ global:
     nodepool0:
       availabilityZones:
       - ${AZ}
-      instanceType: m5.xlarge
-      maxSize: 10
-      minSize: 3
+      instanceType: ${INSTANCE_TYPE}
+      maxSize: ${MAX_NODES}
+      minSize: ${MIN_NODES}
       rootVolumeSizeGB: 8
   providerSpecific: {}
   release:
