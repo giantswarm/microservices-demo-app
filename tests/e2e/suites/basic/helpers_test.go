@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -64,17 +65,21 @@ func getWorkloadClusterBaseDomain() string {
 	return fmt.Sprintf("%s.%s", state.GetCluster().Name, values.BaseDomain)
 }
 
-func newHttpClientWithProxy() *http.Client {
+func newHttpClientWithProxy(endpoint string) *http.Client {
+	httpProxy := os.Getenv("HTTP_PROXY")
+	noProxy := os.Getenv("NO_PROXY")
+	useProxy := httpProxy != "" && !endpointMatchesNoProxy(endpoint, noProxy)
+
 	transport := &http.Transport{
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			dialer := &net.Dialer{
 				Resolver: &net.Resolver{
 					PreferGo: true,
 					Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-						if os.Getenv("HTTP_PROXY") != "" {
-							u, err := url.Parse(os.Getenv("HTTP_PROXY"))
+						if useProxy {
+							u, err := url.Parse(httpProxy)
 							if err != nil {
-								logger.Log("Error parsing HTTP_PROXY as a URL %s", os.Getenv("HTTP_PROXY"))
+								logger.Log("Error parsing HTTP_PROXY as a URL %s", httpProxy)
 							} else {
 								if addr == u.Host {
 									// always use coredns for proxy address resolution.
@@ -94,15 +99,45 @@ func newHttpClientWithProxy() *http.Client {
 		},
 	}
 
-	if os.Getenv("HTTP_PROXY") != "" {
-		logger.Log("Detected need to use PROXY as HTTP_PROXY env var was set to %s", os.Getenv("HTTP_PROXY"))
+	if useProxy {
+		logger.Log("Detected need to use PROXY as HTTP_PROXY env var was set to %s", httpProxy)
 		transport.Proxy = http.ProxyFromEnvironment
+	} else if httpProxy != "" {
+		logger.Log("Skipping HTTP_PROXY %s for endpoint %s because it matches NO_PROXY=%s", httpProxy, endpoint, noProxy)
 	}
 
 	httpClient := &http.Client{
 		Transport: transport,
 	}
 	return httpClient
+}
+
+func endpointMatchesNoProxy(endpoint, noProxy string) bool {
+	if noProxy == "" {
+		return false
+	}
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		return false
+	}
+	host := u.Hostname()
+	if host == "" {
+		return false
+	}
+	for entry := range strings.SplitSeq(noProxy, ",") {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+		if entry == "*" {
+			return true
+		}
+		entry = strings.TrimPrefix(entry, ".")
+		if host == entry || strings.HasSuffix(host, "."+entry) {
+			return true
+		}
+	}
+	return false
 }
 
 func deploymentReadyInNamespace(namespace string) (bool, error) {
@@ -233,7 +268,7 @@ func crdExists(name string) (bool, error) {
 }
 
 func expectEndpointServesTraffic(endpoint string) {
-	httpClient := newHttpClientWithProxy()
+	httpClient := newHttpClientWithProxy(endpoint)
 	Eventually(func() (string, error) {
 		logger.Log("Trying to get a successful response from %s", endpoint)
 		resp, err := httpClient.Get(endpoint)
