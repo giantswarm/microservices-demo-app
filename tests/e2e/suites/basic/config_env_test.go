@@ -11,11 +11,29 @@ import (
 
 var configEnvOnce sync.Once
 
+// infraConfigKeys are config.env entries that identify the manual
+// load-testing pipeline's specific, long-lived cluster (management cluster,
+// workload cluster name, base domain, kube contexts). The e2e suite
+// provisions its own ephemeral workload cluster and discovers these at
+// runtime, so importing them from config.env would point the suite at the
+// wrong installation — e.g. a base domain with no matching Route 53 hosted
+// zone, which leaves every Let's Encrypt certificate stuck on DNS-01.
+var infraConfigKeys = map[string]bool{
+	"WC":          true,
+	"MC":          true,
+	"BASE_DOMAIN": true,
+	"MC_CONTEXT":  true,
+	"K6_CONTEXT":  true,
+}
+
 // loadConfigEnv seeds the process environment from
 // envoy-loadtesting/config.env on first call, so the e2e suite shares
-// defaults with the manual load-testing pipeline. Real env vars already set
-// by the Tekton pipeline (or a local override) always win — this only fills
-// in what's missing.
+// app-tuning defaults (PUBLIC_ENDPOINTS, HPA_*, k6 knobs) with the manual
+// load-testing pipeline. Infrastructure-identity keys (see infraConfigKeys)
+// are deliberately skipped — those are specific to the manual pipeline's
+// cluster and must be discovered at runtime for the ephemeral e2e cluster.
+// Real env vars already set by the Tekton pipeline (or a local override)
+// always win — this only fills in what's missing.
 //
 // File format mirrors `set -a; source config.env; set +a`: KEY=value lines,
 // '#' line comments, and ' #' inline comments stripped from values. Quotes
@@ -44,6 +62,9 @@ func loadConfigEnv() {
 				continue
 			}
 			key := strings.TrimSpace(line[:eq])
+			if infraConfigKeys[key] {
+				continue
+			}
 			value := line[eq+1:]
 			if i := strings.Index(value, " #"); i >= 0 {
 				value = value[:i]

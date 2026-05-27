@@ -246,7 +246,7 @@ func buildAppValues(baseDomain string) string {
 	vars := map[string]string{
 		"INGRESS_NGINX_ENABLED": ingressEnabled,
 		"KONG_ENABLED":          kongEnabled,
-		"BASE":                  envOrDefault("BASE_DOMAIN", baseDomain),
+		"BASE":                  baseDomain,
 		"PUBLIC_ENDPOINTS":      envOrDefault("PUBLIC_ENDPOINTS", "10"),
 		"HPA_MIN_REPLICAS":      envOrDefault("HPA_MIN_REPLICAS", "1"),
 		"HPA_MAX_REPLICAS":      envOrDefault("HPA_MAX_REPLICAS", "20"),
