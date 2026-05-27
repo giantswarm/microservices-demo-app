@@ -39,6 +39,7 @@ const (
 var proxyController = resolveProxyController()
 
 func resolveProxyController() string {
+	loadConfigEnv()
 	v := strings.ToLower(strings.TrimSpace(os.Getenv(proxyControllerEnvVar)))
 	switch v {
 	case "":
@@ -50,33 +51,209 @@ func resolveProxyController() string {
 	}
 }
 
-// buildAppValues returns the per-controller values overlay applied to the
-// microservices-demo-app HelmRelease. Only the chosen controller's routing
-// path is enabled, matching envoy-loadtesting/wc-deployment/loadtesting-app.yaml.
+// microservicesDemoAppValuesTmpl mirrors
+// envoy-loadtesting/wc-deployment/values/microservices-demo.yaml. ${BASE}
+// stands in for the source file's ${WC}.${BASE_DOMAIN} (the test framework
+// already hands us the concatenated FQDN as baseDomain).
+const microservicesDemoAppValuesTmpl = `
+ingress:
+  enabled: ${INGRESS_NGINX_ENABLED}
+  number: ${PUBLIC_ENDPOINTS}
+  base: ${BASE}
+  host: nginx-onlineboutique
+
+kong:
+  enabled: ${KONG_ENABLED}
+  number: ${PUBLIC_ENDPOINTS}
+  base: ${BASE}
+  host: kong-onlineboutique
+  ingressCname: kong-ingress.${BASE}
+
+httproute:
+  enabled: true
+  base: ${BASE}
+  hostname: onlineboutique
+  namespaces:
+    create: true
+    number: ${PUBLIC_ENDPOINTS}
+
+adService:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 180Mi
+    limits:
+      cpu: 300m
+      memory: 300Mi
+  hpa:
+    enabled: true
+    minReplicas: ${HPA_MIN_REPLICAS}
+    maxReplicas: ${HPA_MAX_REPLICAS}
+    targetCPUUtilizationPercentage: 80
+
+cartService:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: ${HPA_MIN_REPLICAS}
+    maxReplicas: ${HPA_MAX_REPLICAS}
+    targetCPUUtilizationPercentage: 80
+
+checkoutService:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: ${HPA_MIN_REPLICAS}
+    maxReplicas: ${HPA_MAX_REPLICAS}
+    targetCPUUtilizationPercentage: 80
+
+currencyService:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: ${HPA_MIN_REPLICAS}
+    maxReplicas: ${HPA_MAX_REPLICAS}
+    targetCPUUtilizationPercentage: 80
+
+emailService:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: ${HPA_MIN_REPLICAS}
+    maxReplicas: ${HPA_MAX_REPLICAS}
+    targetCPUUtilizationPercentage: 80
+
+frontend:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: ${HPA_MIN_REPLICAS}
+    maxReplicas: ${HPA_MAX_REPLICAS}
+    targetCPUUtilizationPercentage: 80
+
+loadGenerator:
+  resources:
+    requests:
+      cpu: 300m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+paymentService:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: ${HPA_MIN_REPLICAS}
+    maxReplicas: ${HPA_MAX_REPLICAS}
+    targetCPUUtilizationPercentage: 80
+
+productCatalogService:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: ${HPA_MIN_REPLICAS}
+    maxReplicas: ${HPA_MAX_REPLICAS}
+    targetCPUUtilizationPercentage: 80
+
+recommendationService:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 220Mi
+    limits:
+      cpu: 200m
+      memory: 450Mi
+  hpa:
+    enabled: true
+    minReplicas: ${HPA_MIN_REPLICAS}
+    maxReplicas: ${HPA_MAX_REPLICAS}
+    targetCPUUtilizationPercentage: 80
+
+shippingService:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: ${HPA_MIN_REPLICAS}
+    maxReplicas: ${HPA_MAX_REPLICAS}
+    targetCPUUtilizationPercentage: 80
+`
+
+// buildAppValues returns the values overlay applied to the
+// microservices-demo-app HelmRelease. Mirrors
+// envoy-loadtesting/wc-deployment/values/microservices-demo.yaml; the
+// PUBLIC_ENDPOINTS / HPA_MIN_REPLICAS / HPA_MAX_REPLICAS knobs are read via
+// envOrDefault so config.env (loaded by loadConfigEnv) supplies the same
+// defaults as the manual pipeline. Only the chosen ingress controller branch
+// is enabled.
 func buildAppValues(baseDomain string) string {
+	ingressEnabled := "false"
+	kongEnabled := "false"
 	switch proxyController {
+	case proxyControllerNginx:
+		ingressEnabled = "true"
 	case proxyControllerKong:
-		return fmt.Sprintf(`
-ingress:
-  enabled: false
-kong:
-  enabled: true
-  base: %s
-  ingressCname: kong-ingress.%s
-httproute:
-  base: %s
-`, baseDomain, baseDomain, baseDomain)
-	default:
-		return fmt.Sprintf(`
-ingress:
-  enabled: true
-  base: %s
-kong:
-  enabled: false
-httproute:
-  base: %s
-`, baseDomain, baseDomain)
+		kongEnabled = "true"
 	}
+	vars := map[string]string{
+		"INGRESS_NGINX_ENABLED": ingressEnabled,
+		"KONG_ENABLED":          kongEnabled,
+		"BASE":                  envOrDefault("BASE_DOMAIN", baseDomain),
+		"PUBLIC_ENDPOINTS":      envOrDefault("PUBLIC_ENDPOINTS", "10"),
+		"HPA_MIN_REPLICAS":      envOrDefault("HPA_MIN_REPLICAS", "1"),
+		"HPA_MAX_REPLICAS":      envOrDefault("HPA_MAX_REPLICAS", "20"),
+	}
+	return os.Expand(microservicesDemoAppValuesTmpl, func(key string) string {
+		return vars[key]
+	})
 }
 
 func TestBasic(t *testing.T) {

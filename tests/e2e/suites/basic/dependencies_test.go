@@ -56,7 +56,7 @@ apps:
         values: |
           gateways:
             default:
-              tlsIssuer:
+              envoyProxy:
                 enabled: false
               allowedListeners:
                 enabled: true
@@ -71,10 +71,6 @@ apps:
                 https:
                   subdomains:
                     - onlineboutique
-                  certificate:
-                    issuer:
-                      kind: ClusterIssuer
-                      name: letsencrypt-giantswarm
   gatewayApiCrds:
     enabled: true
     userConfig:
