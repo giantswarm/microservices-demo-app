@@ -57,7 +57,7 @@ apps:
           gateways:
             default:
               envoyProxy:
-                enabled: false
+                enabled: true
               allowedListeners:
                 enabled: true
                 namespaces:
@@ -71,6 +71,10 @@ apps:
                 https:
                   subdomains:
                     - onlineboutique
+                  certificate:
+                    issuer:
+                      kind: ClusterIssuer
+                      name: letsencrypt-giantswarm
   gatewayApiCrds:
     enabled: true
     userConfig:
