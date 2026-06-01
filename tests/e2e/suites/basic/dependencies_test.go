@@ -56,8 +56,8 @@ apps:
         values: |
           gateways:
             default:
-              tlsIssuer:
-                enabled: false
+              envoyProxy:
+                enabled: true
               allowedListeners:
                 enabled: true
                 namespaces:

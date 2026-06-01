@@ -84,6 +84,7 @@ func getK6Namespace() string {
 }
 
 func envOrDefault(key, fallback string) string {
+	loadConfigEnv()
 	if v := os.Getenv(key); v != "" {
 		return v
 	}
@@ -143,19 +144,21 @@ func buildTestRunUnstructured(name, namespace, configMapName, baseDomain, testID
 	image := envOrDefault("K6_IMAGE", "gsoci.azurecr.io/giantswarm/k6:1.6.0")
 
 	env := []any{
-		map[string]any{"name": "ENDPOINTS", "value": envOrDefault("K6_ENDPOINTS", "10")},
+		map[string]any{"name": "ENDPOINTS", "value": envOrDefault("ENDPOINTS", "10")},
 		map[string]any{"name": "BASE_DOMAIN", "value": baseDomain},
-		map[string]any{"name": "PROXY_CONTROLLER", "value": envOrDefault("K6_PROXY_CONTROLLER", proxyController)},
-		map[string]any{"name": "SCENARIO_DURATION_SECONDS", "value": envOrDefault("K6_SCENARIO_DURATION_SECONDS", "1200")},
-		map[string]any{"name": "WAIT_BETWEEN_SCENARIOS", "value": envOrDefault("K6_WAIT_BETWEEN_SCENARIOS", "300")},
-		map[string]any{"name": "ARRIVAL_RATE", "value": envOrDefault("K6_ARRIVAL_RATE", "26")},
-		map[string]any{"name": "PRE_ALLOCATED_VUS", "value": envOrDefault("K6_PRE_ALLOCATED_VUS", "50")},
-		map[string]any{"name": "MAX_VUS", "value": envOrDefault("K6_MAX_VUS", "150")},
-		map[string]any{"name": "GRACEFUL_STOP", "value": envOrDefault("K6_GRACEFUL_STOP", "30s")},
-		map[string]any{"name": "SLO_P95_LATENCY_MS", "value": envOrDefault("K6_SLO_P95_LATENCY_MS", "500")},
-		map[string]any{"name": "SLO_P99_LATENCY_MS", "value": envOrDefault("K6_SLO_P99_LATENCY_MS", "1000")},
-		map[string]any{"name": "SLO_ERROR_RATE", "value": envOrDefault("K6_SLO_ERROR_RATE", "0.001")},
-		map[string]any{"name": "SLO_CHECKS_RATE", "value": envOrDefault("K6_SLO_CHECKS_RATE", "0.95")},
+		map[string]any{"name": "PROXY_CONTROLLER", "value": proxyController},
+		map[string]any{"name": "SCENARIO_DURATION_SECONDS", "value": envOrDefault("SCENARIO_DURATION_SECONDS", "1200")},
+		map[string]any{"name": "WAIT_BETWEEN_SCENARIOS", "value": envOrDefault("WAIT_BETWEEN_SCENARIOS", "300")},
+		map[string]any{"name": "PEAK_HTTP_RPS", "value": envOrDefault("PEAK_HTTP_RPS", "50")},
+		map[string]any{"name": "RAMP_STEP_HTTP_RPS", "value": envOrDefault("RAMP_STEP_HTTP_RPS", "10")},
+		map[string]any{"name": "RAMP_STEP_DURATION_SECONDS", "value": envOrDefault("RAMP_STEP_DURATION_SECONDS", "300")},
+		map[string]any{"name": "PRE_ALLOCATED_VUS", "value": envOrDefault("PRE_ALLOCATED_VUS", "50")},
+		map[string]any{"name": "MAX_VUS", "value": envOrDefault("MAX_VUS", "150")},
+		map[string]any{"name": "GRACEFUL_STOP", "value": envOrDefault("GRACEFUL_STOP", "30s")},
+		map[string]any{"name": "SLO_P95_LATENCY_MS", "value": envOrDefault("SLO_P95_LATENCY_MS", "500")},
+		map[string]any{"name": "SLO_P99_LATENCY_MS", "value": envOrDefault("SLO_P99_LATENCY_MS", "1000")},
+		map[string]any{"name": "SLO_ERROR_RATE", "value": envOrDefault("SLO_ERROR_RATE", "0.001")},
+		map[string]any{"name": "SLO_CHECKS_RATE", "value": envOrDefault("SLO_CHECKS_RATE", "0.95")},
 	}
 
 	runner := map[string]any{
@@ -198,9 +201,9 @@ func buildTestRunUnstructured(name, namespace, configMapName, baseDomain, testID
 			},
 		}
 		env = append(env,
-			map[string]any{"name": "K6_PROMETHEUS_RW_SERVER_URL", "value": envOrDefault("K6_PROMETHEUS_RW_SERVER_URL", "http://mimir-gateway.mimir.svc.cluster.local/api/v1/push")},
+			map[string]any{"name": "K6_PROMETHEUS_RW_SERVER_URL", "value": envOrDefault("PROMETHEUS_RW_URL", "http://mimir-gateway.mimir.svc.cluster.local/api/v1/push")},
 			map[string]any{"name": "K6_PROMETHEUS_RW_HTTP_HEADERS", "value": envOrDefault("K6_PROMETHEUS_RW_HTTP_HEADERS", "X-Scope-OrgID:giantswarm")},
-			map[string]any{"name": "K6_PROMETHEUS_RW_PUSH_INTERVAL", "value": envOrDefault("K6_PROMETHEUS_RW_PUSH_INTERVAL", "5s")},
+			map[string]any{"name": "K6_PROMETHEUS_RW_PUSH_INTERVAL", "value": envOrDefault("PROMETHEUS_RW_PUSH_INTERVAL", "5s")},
 		)
 		runner["env"] = env
 	}
