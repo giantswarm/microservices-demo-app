@@ -41,14 +41,6 @@ const gatewayApiBundleValues = `
 apps:
   envoyGateway:
     enabled: true
-    userConfig:
-      configMap:
-        values: |
-          config:
-            envoyGateway:
-              gatewayAPI:
-                enabled:
-                  - XListenerSet
   gatewayApiConfig:
     enabled: true
     userConfig:
@@ -77,12 +69,6 @@ apps:
                       name: letsencrypt-giantswarm
   gatewayApiCrds:
     enabled: true
-    userConfig:
-      configMap:
-        values: |
-          install:
-            xlistenersets: "experimental"
-            gateways: "experimental"
 clusterID: %s
 `
 
