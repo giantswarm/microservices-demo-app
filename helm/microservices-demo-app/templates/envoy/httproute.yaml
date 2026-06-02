@@ -10,8 +10,8 @@ metadata:
 spec:
   parentRefs:
   {{- if $.Values.httproute.listenerset.enabled }}
-    - group: gateway.networking.x-k8s.io
-      kind: XListenerSet
+    - group: gateway.networking.k8s.io
+      kind: ListenerSet
       name: listeners-{{ $i }}
       namespace: loadtesting-{{ $i }}
   {{- else }}

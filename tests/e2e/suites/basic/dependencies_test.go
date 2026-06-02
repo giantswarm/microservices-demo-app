@@ -41,14 +41,6 @@ const gatewayApiBundleValues = `
 apps:
   envoyGateway:
     enabled: true
-    userConfig:
-      configMap:
-        values: |
-          config:
-            envoyGateway:
-              gatewayAPI:
-                enabled:
-                  - XListenerSet
   gatewayApiConfig:
     enabled: true
     userConfig:
@@ -77,12 +69,6 @@ apps:
                       name: letsencrypt-giantswarm
   gatewayApiCrds:
     enabled: true
-    userConfig:
-      configMap:
-        values: |
-          install:
-            xlistenersets: "experimental"
-            gateways: "experimental"
 clusterID: %s
 `
 
@@ -161,9 +147,9 @@ controller:
 // Keep in sync with that file so the e2e suite exercises the same versions the
 // benchmark uses.
 var dependencyVersions = map[string]string{
-	"aws-lb-controller-bundle": "5.1.0",
-	"ingress-nginx":            "4.2.5",
-	"gateway-api-bundle":       "1.15.0",
+	"aws-lb-controller-bundle": "5.2.0",
+	"ingress-nginx":            "4.3.3",
+	"gateway-api-bundle":       "1.16.0",
 	"kong-app":                 "5.2.2",
 }
 

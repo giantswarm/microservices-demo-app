@@ -306,7 +306,7 @@ func TestBasic(t *testing.T) {
 				for _, crd := range []string{
 					"gateways.gateway.networking.k8s.io",
 					"httproutes.gateway.networking.k8s.io",
-					"xlistenersets.gateway.networking.x-k8s.io",
+					"listenersets.gateway.networking.k8s.io",
 				} {
 					Eventually(func() (bool, error) {
 						return crdExists(crd)
