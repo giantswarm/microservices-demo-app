@@ -6,7 +6,7 @@ require (
 	github.com/cert-manager/cert-manager v1.20.2
 	github.com/giantswarm/apiextensions-application v0.6.2
 	github.com/giantswarm/apptest-framework/v5 v5.0.1
-	github.com/giantswarm/clustertest/v5 v5.1.0
+	github.com/giantswarm/clustertest/v5 v5.2.0
 	github.com/onsi/ginkgo/v2 v2.29.0
 	github.com/onsi/gomega v1.41.0
 	k8s.io/api v0.36.1
@@ -81,6 +81,7 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-github/v84 v84.0.0 // indirect
 	github.com/google/go-github/v87 v87.0.0 // indirect
+	github.com/google/go-github/v88 v88.0.0 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/google/pprof v0.0.0-20260507013755-92041b743c96 // indirect
 	github.com/google/uuid v1.6.0 // indirect
