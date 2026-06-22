@@ -1,5 +1,5 @@
 {{- if .Values.frontend.create }}
-{{- if .Values.kong.enabled }}
+{{- if and .Values.kong.enabled (not .Values.kong.gatewayAPI.enabled) }}
 {{ range $i := until (.Values.kong.number | int) }}
 ---
 apiVersion: networking.k8s.io/v1

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Add "gateway api not enabled" condition for kong ingress deployment.
+
 ## [0.8.0] - 2026-06-02
 
 ### Changed
