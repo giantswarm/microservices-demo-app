@@ -3,7 +3,7 @@ module e2e
 go 1.26.3
 
 require (
-	github.com/cert-manager/cert-manager v1.20.2
+	github.com/cert-manager/cert-manager v1.20.3
 	github.com/giantswarm/apiextensions-application v0.6.2
 	github.com/giantswarm/apptest-framework/v5 v5.2.0
 	github.com/giantswarm/clustertest/v5 v5.4.0
