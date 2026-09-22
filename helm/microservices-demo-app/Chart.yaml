@@ -21,3 +21,7 @@ annotations:
   io.giantswarm.application.audience: giantswarm
   io.giantswarm.application.managed: "false"
   io.giantswarm.application.team: cabbage
+keywords:
+  - demo
+  - microservices
+  - testing
