@@ -4,13 +4,6 @@ ingress:
   base: ${WC}.${BASE_DOMAIN}
   host: nginx-onlineboutique
 
-kong:
-  enabled: ${KONG_ENABLED}
-  number: ${PUBLIC_ENDPOINTS}
-  base: ${WC}.${BASE_DOMAIN}
-  host: kong-onlineboutique
-  ingressCname: kong-ingress.${WC}.${BASE_DOMAIN}
-
 httproute:
   enabled: true
   base: ${WC}.${BASE_DOMAIN}

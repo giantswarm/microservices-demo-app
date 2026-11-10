@@ -27,24 +27,15 @@ err()  { echo -e "${RED}[$(date +%H:%M:%S)]${NC} $*" >&2; }
 case "${PROXY_CONTROLLER:-}" in
   nginx)
     INGRESS_NGINX_ENABLED=true
-    KONG_ENABLED=false
     REVERSE_PROXY_APP_NAME="${WC}-ingress-nginx"
     REVERSE_PROXY_HOST="nginx-onlineboutique"
-    EXCLUDE_NAME_PATTERN="kong"
-    ;;
-  kong)
-    INGRESS_NGINX_ENABLED=false
-    KONG_ENABLED=true
-    REVERSE_PROXY_APP_NAME="${WC}-kong-app"
-    REVERSE_PROXY_HOST="kong-onlineboutique"
-    EXCLUDE_NAME_PATTERN="ingress-nginx"
     ;;
   *)
-    err "PROXY_CONTROLLER must be 'nginx' or 'kong' (got: '${PROXY_CONTROLLER:-}'). Set it in config.env."
+    err "PROXY_CONTROLLER must be 'nginx' (got: '${PROXY_CONTROLLER:-}'). Set it in config.env."
     exit 1
     ;;
 esac
-export INGRESS_NGINX_ENABLED KONG_ENABLED
+export INGRESS_NGINX_ENABLED
 
 # Shorthand kubectl wrappers per cluster
 kmc()  { kubectl --context="${MC_CONTEXT}" "$@"; }
@@ -89,7 +80,7 @@ render_manifests() {
   envsubst '${WC} ${BASE_DOMAIN}' \
     < "${SCRIPT_DIR}/wc-deployment/values/gateway-api-bundle.yaml" \
     > "${tmpdir}/wc-deployment/values/gateway-api-bundle.yaml"
-  envsubst '${INGRESS_NGINX_ENABLED} ${KONG_ENABLED} ${WC} ${BASE_DOMAIN} ${PUBLIC_ENDPOINTS} ${HPA_MIN_REPLICAS} ${HPA_MAX_REPLICAS}' \
+  envsubst '${INGRESS_NGINX_ENABLED} ${WC} ${BASE_DOMAIN} ${PUBLIC_ENDPOINTS} ${HPA_MIN_REPLICAS} ${HPA_MAX_REPLICAS}' \
     < "${SCRIPT_DIR}/wc-deployment/values/microservices-demo.yaml" \
     > "${tmpdir}/wc-deployment/values/microservices-demo.yaml"
 
@@ -99,15 +90,7 @@ render_manifests() {
 
 render_mc_manifests() {
   render_manifests \
-    | yq 'select(.metadata.namespace == "org-giantswarm")' \
-    | yq 'select(.metadata.name | test("'"${EXCLUDE_NAME_PATTERN}"'") | not)'
-}
-
-# Unfiltered MC manifests — used by teardown so we always clean up both ingress
-# controllers regardless of the current PROXY_CONTROLLER setting (otherwise
-# switching the var between deploy and teardown would orphan the unused App).
-render_mc_manifests_all() {
-  render_manifests | yq 'select(.metadata.namespace == "org-giantswarm")'
+    | yq 'select(.metadata.namespace == "org-giantswarm")'
 }
 
 render_k6_manifests() {
@@ -158,7 +141,6 @@ cmd_app() {
   local ingress_url
   case "${PROXY_CONTROLLER}" in
     nginx) ingress_url="https://${REVERSE_PROXY_HOST}-0.${WC}.${BASE_DOMAIN}/" ;;
-    kong)  ingress_url="https://${REVERSE_PROXY_HOST}.${WC}.${BASE_DOMAIN}/" ;;
   esac
   local attempts=0
   until curl -sf --max-time 10 "${ingress_url}" | grep -q "</html>"; do
@@ -255,7 +237,7 @@ cmd_teardown() {
   kk6 delete secret k6-prometheus-rw-credentials -n "${K6_NAMESPACE}" --ignore-not-found 2>/dev/null || true
 
   log "Deleting WC resources (${MC_CONTEXT})..."
-  render_mc_manifests_all | kmc delete -f - --ignore-not-found
+  render_mc_manifests | kmc delete -f - --ignore-not-found
 
   log "Teardown complete."
 }

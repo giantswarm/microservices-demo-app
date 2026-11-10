@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Chart metadata: add `keywords`.
 
+### Removed
+
+- Remove Kong support from the chart and the `envoy-loadtesting` setup.
+
 ## [0.8.1] - 2026-06-22
 
 ### Fixed
