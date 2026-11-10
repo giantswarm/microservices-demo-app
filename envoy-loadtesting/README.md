@@ -1,7 +1,7 @@
 # Envoy Gateway Load Testing
 
 End-to-end infrastructure for comparing Envoy Gateway against a chosen reverse proxy
-controller (Nginx Ingress *or* Kong) on Giant Swarm workload clusters, using
+controller (Nginx Ingress) on Giant Swarm workload clusters, using
 Google's Online Boutique as the target workload.
 
 The controller is selected via `PROXY_CONTROLLER` in `config.env`. Only the
@@ -64,7 +64,7 @@ Three separate clusters are involved. Each gets its own kubectl context:
 | `BASE_DOMAIN` | `gaws2.gigantic.io`  | Base DNS domain                      |
 | `AZ`          | `eu-north-1a`        | AWS availability zone for node pools |
 | `RELEASE`     | `34.1.0`             | Giant Swarm release version          |
-| `PROXY_CONTROLLER` | `nginx`       | Ingress controller to compare against Envoy. One of: `nginx`, `kong`. Drives which App CR is deployed, which side of the demo-app Helm values is enabled, and which k6 scenario runs. |
+| `PROXY_CONTROLLER` | `nginx`       | Ingress controller to compare against Envoy. Only `nginx` is supported. Drives which App CR is deployed, which side of the demo-app Helm values is enabled, and which k6 scenario runs. |
 
 ### k6 load testing
 
