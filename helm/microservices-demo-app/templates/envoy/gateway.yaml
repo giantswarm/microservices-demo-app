@@ -6,7 +6,7 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   labels:
-    application.giantswarm.io/team: cabbage
+    application.giantswarm.io/team: {{ index $.Chart.Annotations "io.giantswarm.application.team" | quote }}
   name: gateway-{{ $i }}
   namespace: loadtesting-{{ $i }}
 spec:

@@ -282,7 +282,7 @@ function runFlow(baseUrl, checkHttp2) {
   const flow = weightedRandom(FLOWS);
   switch (flow) {
     case "home":
-      browseHome(baseUrl, checkHttp2); 
+      browseHome(baseUrl, checkHttp2);
       break;
     case "browseProduct":
       browseProduct(baseUrl, checkHttp2);

@@ -47,17 +47,8 @@ spec:
       {{- else }}
       serviceAccountName: default
       {{- end }}
-      {{- if .Values.securityContext.enable }}
       securityContext:
-        fsGroup: 1000
-        runAsGroup: 1000
-        runAsNonRoot: true
-        runAsUser: 1000
-        {{- if .Values.seccompProfile.enable }}
-        seccompProfile:
-          type: {{ .Values.seccompProfile.type }}
-        {{- end }}
-      {{- end }}
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       {{- if eq .Values.opentelemetryCollector.projectId "PROJECT_ID" }}
       initContainers:
       # Init container retrieves the current cloud project id from the metadata server
@@ -138,7 +129,7 @@ data:
   collector-gateway-config-template.yaml: |
     receivers:
       otlp:
-        protocols: 
+        protocols:
           grpc:
     processors:
     exporters:

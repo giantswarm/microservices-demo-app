@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Chart metadata: add `keywords`.
 
+### Changed
+
+- Prepare the chart for a strict values schema and generated CI: allow free-form resources, security contexts and annotations, read the team label from the chart annotation and fix the OpenTelemetry collector pod security context.
+
 ### Removed
 
 - Remove Kong support from the chart and the `envoy-loadtesting` setup.
