@@ -6,7 +6,7 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   labels:
-    application.giantswarm.io/team: cabbage
+    application.giantswarm.io/team: {{ index $.Chart.Annotations "io.giantswarm.application.team" | quote }}
   name: gateway-{{ $i }}-https
   namespace: loadtesting-{{ $i }}
 spec:

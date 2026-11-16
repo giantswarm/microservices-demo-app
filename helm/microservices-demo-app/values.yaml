@@ -26,7 +26,7 @@ ingress:
   number: 10
   customCertificate:
     enabled: true
-  annotations: {}
+  annotations: {}  # @schema additionalProperties: true
   base: envoyloadtesting.gaws2.gigantic.io
   host: nginx-onlineboutique
 
@@ -48,7 +48,7 @@ serviceAccounts:
   # Specifies whether service accounts should be created.
   create: true
   # Annotations to add to the service accounts.
-  annotations: {}
+  annotations: {}  # @schema additionalProperties: true
   # Annotations to add only for the cartservice app. This allows to follow the least privilege principle where only cartservice needs to connect to external database for example via Workload Identity.
   annotationsOnlyForCartservice: false
 
@@ -75,7 +75,7 @@ googleCloudOperations:
   tracing: false
   metrics: false
 
-securityContext:
+securityContext:  # @schema skipProperties: true; additionalProperties: true
   runAsNonRoot: true
   runAsUser: 1000
   runAsGroup: 1000
@@ -87,7 +87,7 @@ securityContext:
   seccompProfile:
     type: RuntimeDefault
 
-podSecurityContext:
+podSecurityContext:  # @schema skipProperties: true; additionalProperties: true
   fsGroup: 1000
   runAsGroup: 1000
   runAsNonRoot: true
@@ -98,7 +98,7 @@ podSecurityContext:
 adService:
   create: true
   name: adservice
-  resources:
+  resources:  # @schema skipProperties: true; additionalProperties: true
     requests:
       cpu: 200m
       memory: 180Mi
@@ -114,7 +114,7 @@ adService:
 cartService:
   create: true
   name: cartservice
-  resources:
+  resources:  # @schema skipProperties: true; additionalProperties: true
     requests:
       cpu: 200m
       memory: 128Mi
@@ -130,7 +130,7 @@ cartService:
 checkoutService:
   create: true
   name: checkoutservice
-  resources:
+  resources:  # @schema skipProperties: true; additionalProperties: true
     requests:
       cpu: 100m
       memory: 64Mi
@@ -146,7 +146,7 @@ checkoutService:
 currencyService:
   create: true
   name: currencyservice
-  resources:
+  resources:  # @schema skipProperties: true; additionalProperties: true
     requests:
       cpu: 100m
       memory: 128Mi
@@ -162,7 +162,7 @@ currencyService:
 emailService:
   create: true
   name: emailservice
-  resources:
+  resources:  # @schema skipProperties: true; additionalProperties: true
     requests:
       cpu: 100m
       memory: 64Mi
@@ -192,7 +192,7 @@ frontend:
       namespace: asm-ingress
       labelKey: asm
       labelValue: ingressgateway
-  resources:
+  resources:  # @schema skipProperties: true; additionalProperties: true
     requests:
       cpu: 100m
       memory: 64Mi
@@ -209,7 +209,7 @@ loadGenerator:
   create: false
   name: loadgenerator
   checkFrontendInitContainer: true
-  resources:
+  resources:  # @schema skipProperties: true; additionalProperties: true
     requests:
       cpu: 300m
       memory: 256Mi
@@ -220,7 +220,7 @@ loadGenerator:
 paymentService:
   create: true
   name: paymentservice
-  resources:
+  resources:  # @schema skipProperties: true; additionalProperties: true
     requests:
       cpu: 100m
       memory: 128Mi
@@ -238,7 +238,7 @@ productCatalogService:
   name: productcatalogservice
   # Specifies an extra latency to any request on productcatalogservice, by default no extra latency.
   extraLatency: ""
-  resources:
+  resources:  # @schema skipProperties: true; additionalProperties: true
     requests:
       cpu: 100m
       memory: 64Mi
@@ -254,7 +254,7 @@ productCatalogService:
 recommendationService:
   create: true
   name: recommendationservice
-  resources:
+  resources:  # @schema skipProperties: true; additionalProperties: true
     requests:
       cpu: 100m
       memory: 220Mi
@@ -270,7 +270,7 @@ recommendationService:
 shippingService:
   create: true
   name: shippingservice
-  resources:
+  resources:  # @schema skipProperties: true; additionalProperties: true
     requests:
       cpu: 100m
       memory: 64Mi

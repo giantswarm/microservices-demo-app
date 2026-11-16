@@ -7,7 +7,7 @@ metadata:
     "helm.sh/hook": pre-install,pre-upgrade
     "helm.sh/hook-weight": "-4"
   labels:
-    application.giantswarm.io/team: cabbage
+    application.giantswarm.io/team: {{ index $.Chart.Annotations "io.giantswarm.application.team" | quote }}
   name: {{ .Values.frontend.name }}-nginx-wildcard
   namespace: {{ .Release.Namespace }}
 spec:
@@ -19,4 +19,3 @@ spec:
     name: letsencrypt-giantswarm
   secretName: nginx-ingress-wildcard-tls
 {{- end }}
-
