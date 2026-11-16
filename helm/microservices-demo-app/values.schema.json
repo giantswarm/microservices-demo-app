@@ -1,15 +1,18 @@
 {
-    "$schema": "http://json-schema.org/schema#",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
+    "additionalProperties": false,
     "properties": {
         "adService": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "create": {
                     "type": "boolean"
                 },
                 "hpa": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "enabled": {
                             "type": "boolean"
@@ -30,49 +33,39 @@
                 },
                 "resources": {
                     "type": "object",
-                    "properties": {
-                        "limits": {
-                            "type": "object",
-                            "properties": {
-                                "cpu": {
-                                    "type": "string"
-                                },
-                                "memory": {
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "requests": {
-                            "type": "object",
-                            "properties": {
-                                "cpu": {
-                                    "type": "string"
-                                },
-                                "memory": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
+                    "additionalProperties": true
                 }
             }
         },
         "authorizationPolicies": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "create": {
                     "type": "boolean"
                 }
             }
         },
+        "baseDomain": {
+            "type": "string"
+        },
+        "bootstrapMode": {
+            "type": "object",
+            "additionalProperties": true
+        },
         "cartDatabase": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
+                "type": {
+                    "type": "string"
+                },
                 "connectionString": {
                     "type": "string"
                 },
                 "externalRedisTlsOrigination": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "certificate": {
                             "type": "string"
@@ -93,6 +86,7 @@
                 },
                 "inClusterRedis": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "create": {
                             "type": "boolean"
@@ -104,20 +98,19 @@
                             "type": "boolean"
                         }
                     }
-                },
-                "type": {
-                    "type": "string"
                 }
             }
         },
         "cartService": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "create": {
                     "type": "boolean"
                 },
                 "hpa": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "enabled": {
                             "type": "boolean"
@@ -138,41 +131,24 @@
                 },
                 "resources": {
                     "type": "object",
-                    "properties": {
-                        "limits": {
-                            "type": "object",
-                            "properties": {
-                                "cpu": {
-                                    "type": "string"
-                                },
-                                "memory": {
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "requests": {
-                            "type": "object",
-                            "properties": {
-                                "cpu": {
-                                    "type": "string"
-                                },
-                                "memory": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
+                    "additionalProperties": true
                 }
             }
+        },
+        "chartOperator": {
+            "type": "object",
+            "additionalProperties": true
         },
         "checkoutService": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "create": {
                     "type": "boolean"
                 },
                 "hpa": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "enabled": {
                             "type": "boolean"
@@ -193,41 +169,40 @@
                 },
                 "resources": {
                     "type": "object",
-                    "properties": {
-                        "limits": {
-                            "type": "object",
-                            "properties": {
-                                "cpu": {
-                                    "type": "string"
-                                },
-                                "memory": {
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "requests": {
-                            "type": "object",
-                            "properties": {
-                                "cpu": {
-                                    "type": "string"
-                                },
-                                "memory": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
+                    "additionalProperties": true
                 }
             }
         },
+        "ciliumNetworkPolicy": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "cluster": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "clusterCA": {
+            "type": "string"
+        },
+        "clusterCIDR": {
+            "type": "string"
+        },
+        "clusterDNSIP": {
+            "type": "string"
+        },
+        "clusterID": {
+            "type": "string"
+        },
         "currencyService": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "create": {
                     "type": "boolean"
                 },
                 "hpa": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "enabled": {
                             "type": "boolean"
@@ -248,41 +223,20 @@
                 },
                 "resources": {
                     "type": "object",
-                    "properties": {
-                        "limits": {
-                            "type": "object",
-                            "properties": {
-                                "cpu": {
-                                    "type": "string"
-                                },
-                                "memory": {
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "requests": {
-                            "type": "object",
-                            "properties": {
-                                "cpu": {
-                                    "type": "string"
-                                },
-                                "memory": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
+                    "additionalProperties": true
                 }
             }
         },
         "emailService": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "create": {
                     "type": "boolean"
                 },
                 "hpa": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "enabled": {
                             "type": "boolean"
@@ -303,35 +257,16 @@
                 },
                 "resources": {
                     "type": "object",
-                    "properties": {
-                        "limits": {
-                            "type": "object",
-                            "properties": {
-                                "cpu": {
-                                    "type": "string"
-                                },
-                                "memory": {
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "requests": {
-                            "type": "object",
-                            "properties": {
-                                "cpu": {
-                                    "type": "string"
-                                },
-                                "memory": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
+                    "additionalProperties": true
                 }
             }
         },
+        "externalDNSIP": {
+            "type": "string"
+        },
         "frontend": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "create": {
                     "type": "boolean"
@@ -344,6 +279,7 @@
                 },
                 "hpa": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "enabled": {
                             "type": "boolean"
@@ -367,42 +303,21 @@
                 },
                 "resources": {
                     "type": "object",
-                    "properties": {
-                        "limits": {
-                            "type": "object",
-                            "properties": {
-                                "cpu": {
-                                    "type": "string"
-                                },
-                                "memory": {
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "requests": {
-                            "type": "object",
-                            "properties": {
-                                "cpu": {
-                                    "type": "string"
-                                },
-                                "memory": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
+                    "additionalProperties": true
                 },
                 "singleSharedSession": {
                     "type": "boolean"
                 },
                 "virtualService": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "create": {
                             "type": "boolean"
                         },
                         "gateway": {
                             "type": "object",
+                            "additionalProperties": false,
                             "properties": {
                                 "labelKey": {
                                     "type": "string"
@@ -428,8 +343,26 @@
                 }
             }
         },
+        "gcpProject": {
+            "type": "string"
+        },
+        "global": {
+            "type": [
+                "object",
+                "null"
+            ],
+            "description": "Global values shared between all subcharts and the platform.",
+            "additionalProperties": true,
+            "properties": {
+                "podSecurityStandards": {
+                    "type": "object",
+                    "additionalProperties": true
+                }
+            }
+        },
         "googleCloudOperations": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "metrics": {
                     "type": "boolean"
@@ -442,14 +375,20 @@
                 }
             }
         },
+        "helm": {
+            "type": "object",
+            "additionalProperties": true
+        },
         "httproute": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "base": {
                     "type": "string"
                 },
                 "clienttrafficpolicy": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "enabled": {
                             "type": "boolean"
@@ -461,6 +400,7 @@
                 },
                 "envoyProxy": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "enabled": {
                             "type": "boolean"
@@ -472,6 +412,7 @@
                 },
                 "listenerset": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "enabled": {
                             "type": "boolean"
@@ -480,6 +421,7 @@
                 },
                 "namespaces": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "create": {
                             "type": "boolean"
@@ -493,6 +435,7 @@
         },
         "images": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "repository": {
                     "type": "string"
@@ -504,15 +447,18 @@
         },
         "ingress": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "annotations": {
-                    "type": "object"
+                    "type": "object",
+                    "additionalProperties": true
                 },
                 "base": {
                     "type": "string"
                 },
                 "customCertificate": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "enabled": {
                             "type": "boolean"
@@ -532,6 +478,7 @@
         },
         "loadGenerator": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "checkFrontendInitContainer": {
                     "type": "boolean"
@@ -544,35 +491,16 @@
                 },
                 "resources": {
                     "type": "object",
-                    "properties": {
-                        "limits": {
-                            "type": "object",
-                            "properties": {
-                                "cpu": {
-                                    "type": "string"
-                                },
-                                "memory": {
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "requests": {
-                            "type": "object",
-                            "properties": {
-                                "cpu": {
-                                    "type": "string"
-                                },
-                                "memory": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
+                    "additionalProperties": true
                 }
             }
         },
+        "managementCluster": {
+            "type": "string"
+        },
         "networkPolicies": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "create": {
                     "type": "boolean"
@@ -581,6 +509,7 @@
         },
         "opentelemetryCollector": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "create": {
                     "type": "boolean"
@@ -595,12 +524,14 @@
         },
         "paymentService": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "create": {
                     "type": "boolean"
                 },
                 "hpa": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "enabled": {
                             "type": "boolean"
@@ -621,60 +552,17 @@
                 },
                 "resources": {
                     "type": "object",
-                    "properties": {
-                        "limits": {
-                            "type": "object",
-                            "properties": {
-                                "cpu": {
-                                    "type": "string"
-                                },
-                                "memory": {
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "requests": {
-                            "type": "object",
-                            "properties": {
-                                "cpu": {
-                                    "type": "string"
-                                },
-                                "memory": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
+                    "additionalProperties": true
                 }
             }
         },
         "podSecurityContext": {
             "type": "object",
-            "properties": {
-                "fsGroup": {
-                    "type": "integer"
-                },
-                "runAsGroup": {
-                    "type": "integer"
-                },
-                "runAsNonRoot": {
-                    "type": "boolean"
-                },
-                "runAsUser": {
-                    "type": "integer"
-                },
-                "seccompProfile": {
-                    "type": "object",
-                    "properties": {
-                        "type": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
+            "additionalProperties": true
         },
         "productCatalogService": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "create": {
                     "type": "boolean"
@@ -684,6 +572,7 @@
                 },
                 "hpa": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "enabled": {
                             "type": "boolean"
@@ -704,41 +593,23 @@
                 },
                 "resources": {
                     "type": "object",
-                    "properties": {
-                        "limits": {
-                            "type": "object",
-                            "properties": {
-                                "cpu": {
-                                    "type": "string"
-                                },
-                                "memory": {
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "requests": {
-                            "type": "object",
-                            "properties": {
-                                "cpu": {
-                                    "type": "string"
-                                },
-                                "memory": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
+                    "additionalProperties": true
                 }
             }
         },
+        "provider": {
+            "type": "string"
+        },
         "recommendationService": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "create": {
                     "type": "boolean"
                 },
                 "hpa": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "enabled": {
                             "type": "boolean"
@@ -759,77 +630,21 @@
                 },
                 "resources": {
                     "type": "object",
-                    "properties": {
-                        "limits": {
-                            "type": "object",
-                            "properties": {
-                                "cpu": {
-                                    "type": "string"
-                                },
-                                "memory": {
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "requests": {
-                            "type": "object",
-                            "properties": {
-                                "cpu": {
-                                    "type": "string"
-                                },
-                                "memory": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
+                    "additionalProperties": true
                 }
             }
         },
         "securityContext": {
             "type": "object",
-            "properties": {
-                "allowPrivilegeEscalation": {
-                    "type": "boolean"
-                },
-                "capabilities": {
-                    "type": "object",
-                    "properties": {
-                        "drop": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                },
-                "readOnlyRootFilesystem": {
-                    "type": "boolean"
-                },
-                "runAsGroup": {
-                    "type": "integer"
-                },
-                "runAsNonRoot": {
-                    "type": "boolean"
-                },
-                "runAsUser": {
-                    "type": "integer"
-                },
-                "seccompProfile": {
-                    "type": "object",
-                    "properties": {
-                        "type": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
+            "additionalProperties": true
         },
         "serviceAccounts": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "annotations": {
-                    "type": "object"
+                    "type": "object",
+                    "additionalProperties": true
                 },
                 "annotationsOnlyForCartservice": {
                     "type": "boolean"
@@ -841,12 +656,14 @@
         },
         "shippingService": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "create": {
                     "type": "boolean"
                 },
                 "hpa": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "enabled": {
                             "type": "boolean"
@@ -867,35 +684,13 @@
                 },
                 "resources": {
                     "type": "object",
-                    "properties": {
-                        "limits": {
-                            "type": "object",
-                            "properties": {
-                                "cpu": {
-                                    "type": "string"
-                                },
-                                "memory": {
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "requests": {
-                            "type": "object",
-                            "properties": {
-                                "cpu": {
-                                    "type": "string"
-                                },
-                                "memory": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
+                    "additionalProperties": true
                 }
             }
         },
         "shoppingAssistantService": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "create": {
                     "type": "boolean"
@@ -907,11 +702,15 @@
         },
         "sidecars": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "create": {
                     "type": "boolean"
                 }
             }
+        },
+        "subscriptionID": {
+            "type": "string"
         }
     }
 }
